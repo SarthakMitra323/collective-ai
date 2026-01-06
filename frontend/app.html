@@ -17,9 +17,6 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-    <!-- Cloudflare Turnstile -->
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-
     <style>
         /* --- VARIABLES & RESET --- */
         :root {
@@ -291,19 +288,6 @@
         }
         
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* --- TURNSTILE WIDGET --- */
-        .turnstile-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1.25rem;
-            scale: 0.9;
-            transform-origin: center;
-        }
-        
-        .cf-turnstile {
-            --color: white;
-        }
 
     </style>
 </head>
@@ -361,9 +345,6 @@
                         </button>
                     </div>
                 </div>
-                <div class="turnstile-container">
-                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAAA_qgJRqLSMd8nH" data-theme="dark" id="signup-turnstile"></div>
-                </div>
                 <button type="submit" class="btn-submit" id="signup-btn">
                     <span class="btn-text">Create Account</span>
                     <div class="loading-spinner"></div>
@@ -384,9 +365,6 @@
                             <i class="ph ph-eye"></i>
                         </button>
                     </div>
-                </div>
-                <div class="turnstile-container">
-                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAAA_qgJRqLSMd8nH" data-theme="dark" id="login-turnstile"></div>
                 </div>
                 <button type="submit" class="btn-submit" id="login-btn">
                     <span class="btn-text">Sign In</span>
@@ -518,10 +496,6 @@
             headerSubtitle.textContent = "Join the neural fabric. Share wisdom.";
             clearMessage();
             animateFormSwitch(formSignup);
-            // Reset Turnstile for signup
-            if (window.turnstile) {
-                window.turnstile.reset(document.getElementById('signup-turnstile'));
-            }
         });
 
         tabLogin.addEventListener('click', () => {
@@ -533,10 +507,6 @@
             headerSubtitle.textContent = "Reconnect with the collective intelligence.";
             clearMessage();
             animateFormSwitch(formLogin);
-            // Reset Turnstile for login
-            if (window.turnstile) {
-                window.turnstile.reset(document.getElementById('login-turnstile'));
-            }
         });
 
         function animateFormSwitch(element) {
@@ -584,13 +554,6 @@
                 return;
             }
 
-            // Validate Turnstile
-            const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
-            if (!turnstileToken) {
-                showMessage('error', "Please complete the security challenge.");
-                return;
-            }
-
             setLoading('signup-btn', true);
 
             try {
@@ -615,13 +578,6 @@
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
 
-            // Validate Turnstile
-            const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
-            if (!turnstileToken) {
-                showMessage('error', "Please complete the security challenge.");
-                return;
-            }
-
             setLoading('login-btn', true);
 
             try {
@@ -638,14 +594,6 @@
 
         googleBtn.addEventListener('click', async () => {
             clearMessage();
-            
-            // Validate Turnstile
-            const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
-            if (!turnstileToken) {
-                showMessage('error', "Please complete the security challenge.");
-                return;
-            }
-            
             const provider = new GoogleAuthProvider();
             try {
                 const result = await signInWithPopup(auth, provider);
