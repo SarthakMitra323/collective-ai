@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collective AI | Intelligence, Democratized</title>
+    <meta name="description" content="Collective AI - Growing stronger as the community grows.">
+    <!-- Favicon -->
+    <link rel="icon" href="frontend\images\Logo-favicon.png" type="image/png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Libraries: GSAP, ScrollTrigger, Vanilla Tilt, Phosphor Icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --bg-deep: #050507;
+            --bg-panel: rgba(255, 255, 255, 0.03);
+            --primary: #6366f1; /* Indigo */
+            --accent: #a855f7; /* Purple */
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-card: rgba(10, 10, 15, 0.65);
+            --glow: 0 0 20px rgba(99, 102, 241, 0.5);
+            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            /* Visibility hidden initially to let Preloader handle reveal */
+            visibility: hidden; 
+        }
+
+        h1, h2, h3 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* --- PRELOADER --- */
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            visibility: visible; /* Override body visibility */
+        }
+
+        .loader-text {
+            font-family: 'Space Grotesk', 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 0.1em;
+            color: var(--primary);
+            margin-top: 1rem;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        .loader-bar {
+            width: 200px;
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loader-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            animation: loading 2s ease-in-out forwards;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* --- BACKGROUND CANVAS --- */
+        #network-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #111118 0%, #050507 100%);
+            opacity: 0; /* GSAP will fade this in */
+        }
+
+        /* --- UTILITIES --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        /* --- NAVIGATION --- */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+            background: transparent;
+            transition: background 0.4s ease, padding 0.4s ease;
+        }
+
+        .navbar.scrolled {
+            background: rgba(5, 5, 7, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-img {
+            height: 32px;
+            width: auto;
+            border-radius: 6px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-item {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .nav-item::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--primary);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .nav-item:hover {
+            color: var(--text-main);
+        }
+        
+        .nav-item:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .menu-toggle {
+            display: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--text-main);
+            z-index: 101;
+        }
+
+        /* --- BUTTONS (Standard Interactions) --- */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-block;
+            border: 1px solid transparent;
+            text-align: center;
+            position: relative;
+            overflow: hidden; /* For shimmer */
+            z-index: 1;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+        }
+
+        /* Simple Shimmer on Hover (Non-magnetic) */
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                120deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.6), 
+                transparent
+            );
+            transform: skewX(-20deg);
+            transition: 0s;
+        }
+
+        .btn:hover::before {
+            left: 150%;
+            transition: 0.6s ease-in-out;
+        }
+
+        .btn-ghost {
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            background: transparent;
+        }
+        
+        .btn-ghost:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+            text-shadow: 0 0 8px rgba(255,255,255,0.5);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Glow on Hover */
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.6), 
+                        0 0 60px rgba(168, 85, 247, 0.3);
+        }
+
+        /* --- HERO SECTION --- */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: 4rem;
+            position: relative;
+            width: 100%;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            width: 100%;
+            padding: 0 1rem;
+        }
+
+        .reveal-container {
+            overflow: hidden;
+            display: block;
+        }
+
+        .hero h1 {
+            font-size: 5rem;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-btns {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* --- FEATURES & PRESSURE POINTS --- */
+        .features, .pressure-points {
+            padding: 8rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 5rem;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            padding: 2.5rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            opacity: 0; 
+            transform: translateY(50px);
+            /* Preserve 3D effect */
+            transform-style: preserve-3d;
+            transform: perspective(1000px);
+        }
+
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            transform: translateZ(20px); /* 3D pop */
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            transform: translateZ(20px);
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            transform: translateZ(20px);
+        }
+
+        /* --- MOTTO SECTION --- */
+        .motto {
+            padding: 8rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 80vh; /* Increased height for new content */
+            display: flex;
+            align-items: center;
+        }
+
+        .motto-text-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* UPDATED: Crystal Clear Readability - No Shadow/Blur */
+        .motto-text {
+            font-size: 5rem;
+            font-weight: 800; /* Extra Bold */
+            line-height: 1.1;
+            color: #ffffff; 
+            letter-spacing: -0.02em; 
+            opacity: 0; 
+        }
+
+        .motto-line {
+            width: 0%;
+            height: 4px; 
+            background: var(--accent);
+            margin: 2rem auto;
+            border-radius: 2px;
+            box-shadow: 0 0 15px var(--accent); /* Glow effect */
+        }
+
+        .motto-desc {
+            max-width: 700px;
+            margin: 0 auto 3rem auto;
+            font-size: 1.25rem;
+            color: #e2e8f0; /* Much lighter grey */
+            line-height: 1.8;
+            opacity: 0; /* Hidden initially */
+            transform: translateY(20px);
+            font-weight: 400;
+        }
+
+        .motto-btn-wrapper {
+            opacity: 0;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            border-top: 1px solid var(--glass-border);
+            padding: 3rem 0;
+            margin-top: 4rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* --- RESPONSIVE MEDIA QUERIES --- */
+        @media (max-width: 960px) {
+            .hero h1 { font-size: 4rem; }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 1.5rem; }
+            
+            /* Navbar Mobile */
+            .nav-links {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100vh;
+                background: rgba(5, 5, 7, 0.98);
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                transform: translateY(-100%);
+                transition: transform 0.4s ease-in-out;
+                z-index: 99;
+            }
+            
+            .nav-links.active {
+                transform: translateY(0);
+            }
+
+            .nav-actions { display: none; } /* Hide desktop buttons on mobile */
+            .menu-toggle { display: block; }
+            
+            /* Add Mobile buttons inside menu */
+            .mobile-auth {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                margin-top: 2rem;
+            }
+
+            /* Typography Scaling */
+            .hero h1 { font-size: 2.8rem; }
+            .hero p { font-size: 1rem; }
+            .hero-btns { flex-direction: column; width: 100%; }
+            .hero-btns .btn { width: 100%; }
+
+            .section-title { font-size: 2.2rem; }
+            .motto-text { font-size: 2.5rem; } /* Adjusted for mobile */
+            .motto-desc { font-size: 1rem; }
+            
+            .features, .pressure-points, .motto { padding: 4rem 0; }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PRELOADER -->
+    <div id="preloader">
+        <div class="loader-text">ESTABLISHING CONNECTION...</div>
+        <div class="loader-bar"></div>
+    </div>
+
+    <!-- Background Animation -->
+    <canvas id="network-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container" style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+            <a href="#" class="logo">
+                <img src="frontend\images\Logo.png" alt="Collective AI Logo" class="logo-img">
+                Collective AI
+            </a>
+            
+            <div class="nav-links" id="nav-links">
+                <a href="#mission" class="nav-item">Mission</a>
+                <a href="#how-it-works" class="nav-item">How it Works</a>
+                <a href="frontend\app.html" class="nav-item">Community</a>
+                
+                <!-- Mobile Only Buttons -->
+                <div class="mobile-auth" style="display: none;"> <!-- Injected via JS for mobile logic check or handled by CSS -->
+                   <!-- Handled via JS cloning or CSS -->
+                </div>
+            </div>
+
+            <!-- Desktop Actions -->
+            <div class="nav-actions">
+                <a href="frontend\app.html" class="btn btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Log In</a>
+                <a href="frontend\app.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Sign Up</a>
+            </div>
+            
+            <div class="menu-toggle" id="mobile-menu">≡</div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="container hero-content">
+            <h1 class="hero-title">
+                <div class="reveal-container">Intelligence Beyond</div>
+                <div class="reveal-container"><span class="gradient-text">The Individual</span></div>
+            </h1>
+            <p class="hero-desc">We are building an AI not by scraping data, but by synthesizing human wisdom. Read articles, share expertise, and build the future.</p>
+            <div class="hero-btns">
+                <a href="frontend\app.html" class="btn btn-primary">Join the Collective</a>
+                <a href="#how-it-works" class="btn btn-ghost">Learn More</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- NEW SECTION: Pressure Points (The Problem) -->
+    <section class="pressure-points">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-subtitle">Why Collective AI?</span>
+                <h2 class="section-title">The Problem with "Black Boxes"</h2>
+            </div>
+            
+            <div class="grid">
+                <!-- Point 1: Trust -->
+                <div class="card" data-tilt data-tilt-max="5" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.1">
+                    <div class="icon-box" style="color: var(--accent); border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.1);">🛡️</div>
+                    <h3>Trust, Not Probability</h3>
+                    <p>Stop trusting statistical guesses. Start trusting verified human wisdom. We replace hallucination with attribution.</p>
+                </div>
+
+                <!-- Point 2: Ethics -->
+                <div class="card" data-tilt data-tilt-max="5" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.1">
+                    <div class="icon-box" style="color: var(--accent); border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.1);">🤝</div>
+                    <h3>Built With You</h3>
+                    <p>Creators act as fuel for other models. Here, you are the engine. An AI built <em>with</em> you, not <em>off</em> you.</p>
+                </div>
+
+                <!-- Point 3: Relevance -->
+                <div class="card" data-tilt data-tilt-max="5" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.1">
+                    <div class="icon-box" style="color: var(--accent); border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.1);">⚡</div>
+                    <h3>Real-Time Evolution</h3>
+                    <p>Static models get stuck in the past. The Collective learns the moment you do. Intelligence that evolves at the speed of thought.</p>
+                </div>
+
+                <!-- Point 4: Depth -->
+                <div class="card" data-tilt data-tilt-max="5" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.1">
+                    <div class="icon-box" style="color: var(--accent); border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.1);">💎</div>
+                    <h3>Beyond Average</h3>
+                    <p>Don't settle for the average of the internet. Access the curated peak of human expertise and context.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Value Proposition -->
+    <section id="how-it-works" class="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-subtitle">The Ecosystem</span>
+                <h2 class="section-title">How We Grow Together</h2>
+            </div>
+
+            <div class="grid">
+                <!-- Step 1 -->
+                <div class="card" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.2">
+                    <div class="icon-box">✍️</div>
+                    <h3>Share Knowledge</h3>
+                    <p>Write detailed articles and validate information within your domain of expertise. Your specific knowledge becomes part of the neural fabric.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="card" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.2">
+                    <div class="icon-box">🔗</div>
+                    <h3>Connect Context</h3>
+                    <p>Collective AI links your contributions with thousands of others, finding patterns and reasoning that a single model misses.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="card" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.2">
+                    <div class="icon-box">💡</div>
+                    <h3>Solve Problems</h3>
+                    <p>Users ask questions, and the AI synthesizes answers grounded in human verification. The community grows, the intelligence deepens.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Motto Section -->
+    <section class="motto">
+        <div class="container">
+            <p style="color: var(--accent); margin-bottom: 2rem; font-weight: 600; letter-spacing: 0.1em;">OUR PHILOSOPHY</p>
+            <div class="motto-text-container">
+                <h2 class="motto-text">"Growing stronger as <br> the community grows."</h2>
+                <div class="motto-line"></div>
+            </div>
+            
+            <!-- ADDED: Descriptive text for clarity -->
+            <p class="motto-desc">
+                Unlike static models trained in isolation, Collective AI evolves in real-time. 
+                Every article you write, every insight you share, and every question you answer 
+                weaves a new thread into the neural fabric—creating an intelligence that is 
+                transparent, verifiable, and infinitely scalable.
+            </p>
+
+            <div class="motto-btn-wrapper">
+                <a href="frontend\app.html" class="btn btn-primary">Contribute Now</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Collective AI. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Script for Security -->
+    <script src="frontend/security.js"></script>
+
+    <!-- Script for Canvas & GSAP Animations -->
+    <script>
+        // --- 0. PRELOADER & MOBILE MENU LOGIC ---
+        
+        window.addEventListener("load", () => {
+            const preloader = document.getElementById('preloader');
+            const body = document.querySelector('body');
+            
+            // Artificial delay to show the "Connecting" animation
+            setTimeout(() => {
+                gsap.to(preloader, {
+                    opacity: 0,
+                    duration: 0.8,
+                    onComplete: () => {
+                        preloader.style.display = "none";
+                        // Reveal Body content
+                        gsap.set(body, { visibility: "visible" });
+                        initAnimations(); // Start main animations
+                    }
+                });
+            }, 2000);
+        });
+
+        // Mobile Menu Toggle
+        const menuToggle = document.getElementById('mobile-menu');
+        const navLinks = document.getElementById('nav-links');
+        
+        // Inject mobile buttons if on small screen
+        const mobileAuth = document.querySelector('.mobile-auth');
+        const desktopActions = document.querySelector('.nav-actions');
+
+        menuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            if(navLinks.classList.contains('active')) {
+                menuToggle.textContent = '✕';
+                // Clone buttons to mobile menu if not there
+                if(window.innerWidth <= 768 && mobileAuth.children.length === 0) {
+                     mobileAuth.style.display = "flex";
+                     mobileAuth.innerHTML = desktopActions.innerHTML;
+                }
+            } else {
+                menuToggle.textContent = '≡';
+            }
+        });
+
+        // --- 1. VANILLA CANVAS PARTICLE SYSTEM (Optimized) ---
+        const canvas = document.getElementById('network-canvas');
+        const ctx = canvas.getContext('2d');
+        let particlesArray;
+
+        // Fix canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+
+        let mouse = { x: null, y: null, radius: 150 };
+
+        window.addEventListener('mousemove', function(event) {
+            mouse.x = event.x;
+            mouse.y = event.y;
+        });
+
+        class Particle {
+            constructor(x, y, directionX, directionY, size) {
+                this.x = x;
+                this.y = y;
+                this.directionX = directionX;
+                this.directionY = directionY;
+                this.size = size;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = '#6366f1';
+                ctx.fill();
+            }
+            update() {
+                if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+                if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+
+                // Mouse Repulsion/Attraction Physics
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < mouse.radius + this.size) {
+                    if (mouse.x < this.x && this.x < canvas.width - this.size * 10) this.x += 2;
+                    if (mouse.x > this.x && this.x > this.size * 10) this.x -= 2;
+                    if (mouse.y < this.y && this.y < canvas.height - this.size * 10) this.y += 2;
+                    if (mouse.y > this.y && this.y > this.size * 10) this.y -= 2;
+                }
+                this.x += this.directionX;
+                this.y += this.directionY;
+                this.draw();
+            }
+        }
+
+        function initParticles() {
+            particlesArray = [];
+            // Optimize particle count for mobile
+            let divisor = window.innerWidth < 768 ? 15000 : 10000;
+            let numberOfParticles = (canvas.height * canvas.width) / divisor; 
+            
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 2) + 1;
+                let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                let directionX = (Math.random() * 0.4) - 0.2;
+                let directionY = (Math.random() * 0.4) - 0.2;
+                particlesArray.push(new Particle(x, y, directionX, directionY, size));
+            }
+        }
+
+        function connectParticles() {
+            let opacityValue = 1;
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    let distance = ((particlesArray[a].x - particlesArray[b].x) ** 2) + 
+                                   ((particlesArray[a].y - particlesArray[b].y) ** 2);
+                    if (distance < (canvas.width/7) * (canvas.height/7)) {
+                        opacityValue = 1 - (distance / 20000);
+                        ctx.strokeStyle = 'rgba(99, 102, 241,' + opacityValue + ')';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animateCanvas() {
+            requestAnimationFrame(animateCanvas);
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+            connectParticles();
+        }
+
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            initParticles();
+        });
+
+        initParticles();
+        animateCanvas();
+
+
+        // --- 2. GSAP "BILLION DOLLAR" ANIMATIONS ---
+        
+        function initAnimations() {
+            gsap.registerPlugin(ScrollTrigger);
+
+            // A. Initial Reveals
+            gsap.to("#network-canvas", { opacity: 1, duration: 2, ease: "power2.inOut" });
+
+            // B. Hero Sequence (Cinematic Text Reveal)
+            const heroTl = gsap.timeline({ defaults: { ease: "power4.out" } });
+
+            heroTl
+                // Nav Fade Down
+                .from(".navbar", { 
+                    y: -100, 
+                    opacity: 0, 
+                    duration: 1.2 
+                })
+                // Reveal Title Lines (clip-path effect)
+                .from(".hero h1 .reveal-container", {
+                    y: 120,
+                    stagger: 0.15,
+                    duration: 1.8,
+                    skewY: 5
+                }, "-=0.8") 
+                // Description Fade Up
+                .from(".hero p", {
+                    y: 40,
+                    opacity: 0,
+                    duration: 1.2
+                }, "-=1.2")
+                // Buttons Pop In
+                .from(".hero-btns .btn", {
+                    y: 20,
+                    opacity: 0,
+                    scale: 0.9,
+                    stagger: 0.1,
+                    duration: 1,
+                    ease: "elastic.out(1, 0.5)"
+                }, "-=1.0");
+
+            // C. Scroll Animations for Cards (Applies to both Pressure Points and How It Works)
+            gsap.utils.toArray(".card").forEach((card, i) => {
+                gsap.to(card, {
+                    scrollTrigger: {
+                        trigger: card,
+                        start: "top 90%", // Trigger slightly earlier
+                        toggleActions: "play none none reverse"
+                    },
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: "power3.out",
+                    delay: (i % 3) * 0.15 // Stagger based on grid column
+                });
+            });
+
+            // D. Section Headers (Applies to both headers)
+            gsap.utils.toArray(".section-header").forEach(header => {
+                gsap.from(header.querySelectorAll(".section-subtitle, .section-title"), {
+                    scrollTrigger: {
+                        trigger: header,
+                        start: "top 80%"
+                    },
+                    y: 50,
+                    opacity: 0,
+                    stagger: 0.2,
+                    duration: 1.2,
+                    ease: "power3.out"
+                });
+            });
+
+            // E. Motto Section Fix (Bold, Clean, Sharp - No Blur)
+            const mottoTl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: ".motto",
+                    start: "top 75%"
+                }
+            });
+
+            mottoTl
+                .to(".motto-text", {
+                    opacity: 1, 
+                    scale: 1, 
+                    duration: 1.5,
+                    ease: "power2.out"
+                })
+                .from(".motto-text", {
+                    scale: 1.1,
+                    y: 20, /* Simple Slide Up */
+                    duration: 1.5
+                }, "<") 
+                .to(".motto-line", {
+                    width: "150px", 
+                    duration: 1,
+                    ease: "expo.out"
+                }, "-=1")
+                /* ADDED: Description reveal */
+                .to(".motto-desc", {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: "power2.out"
+                }, "-=0.5")
+                .to(".motto-btn-wrapper", {
+                    y: 0,
+                    opacity: 1,
+                    duration: 1
+                }, "-=0.5");
+
+            // G. Navbar Glass Effect
+            ScrollTrigger.create({
+                start: "top -50",
+                end: 99999,
+                toggleClass: { className: "scrolled", targets: ".navbar" }
+            });
+            
+            // H. Initialize Tilt for Cards
+            VanillaTilt.init(document.querySelectorAll(".card"), {
+                max: 10,
+                speed: 400,
+                glare: true,
+                "max-glare": 0.2,
+            });
+        }
+    </script>
+</body>
+</html>
