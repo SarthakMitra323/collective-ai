@@ -293,7 +293,7 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             display: flex;
-            align-items: flex-end;
+            align-items: center; /* Changed from flex-end to center */
             padding: 0.75rem;
             transition: border-color 0.2s;
         }
@@ -349,7 +349,7 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <img src="images/Logo.png" alt="Logo" class="logo-img">
+            <img src="images/Logo.jpg" alt="Logo" class="logo-img">
             <span class="logo-text">Collective AI</span>
         </div>
 
@@ -446,7 +446,7 @@
             appId: "1:851370153534:web:484314623047fd110ca36f",
             measurementId: "G-H1362YWCJB"
         };
-        const AI_BACKEND_URL = "http://localhost:3000/api/chat"; 
+        const AI_BACKEND_URL = "http://localhost:3000/api/chat"; // Placeholder
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -479,6 +479,20 @@
             }
         });
 
+        // Helper: Predict Name from Email
+        function predictNameFromEmail(email) {
+            if (!email) return "Traveler";
+            // Get part before @
+            const handle = email.split('@')[0];
+            // Replace dots, underscores, hyphens, numbers with spaces
+            const cleanHandle = handle.replace(/[0-9._-]/g, ' ');
+            // Capitalize words
+            return cleanHandle.split(' ')
+                .filter(word => word.length > 0)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+
         async function loadUserProfile(user) {
             // Get profile from Firestore
             try {
@@ -489,9 +503,10 @@
                 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    displayName = data.displayName || user.displayName || "Traveler";
+                    // Use Firestore name, or Auth name, or Predict from email
+                    displayName = data.displayName || user.displayName || predictNameFromEmail(user.email);
                 } else {
-                    displayName = user.displayName || user.email.split('@')[0];
+                    displayName = user.displayName || predictNameFromEmail(user.email);
                 }
 
                 headerGreeting.textContent = `Hello, ${displayName}`;
