@@ -4,16 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 | Signal Lost</title>
-    <!-- Favicon-->
-    <link rel="icon" href="/frontend/images/Logo-favicon.png" type="image/png">
-
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PQTD3XFX');</script>
-    <!-- End Google Tag Manager -->
+    <!-- Favicon -->
+    <link rel="icon" href="images/Logo-favicon.png" type="image/png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -106,6 +98,7 @@
             margin-bottom: 1rem;
             background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -164,10 +157,6 @@
     </style>
 </head>
 <body>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PQTD3XFX"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
 
     <div class="noise-overlay"></div>
     <canvas id="disconnected-canvas"></canvas>
@@ -177,8 +166,7 @@
         <h2>Neural Link Severed</h2>
         <p>The collective knowledge you are looking for has either moved or does not exist in this timeline. Or perhaps, we are still building this neural pathway.</p>
         
-        <!-- Updated to absolute path for robustness -->
-        <a href="/index.html" class="btn-home">
+        <a href="../index.html" class="btn-home">
             <i class="ph ph-house"></i> Return to Collective
         </a>
     </div>
@@ -270,4 +258,3 @@
     </script>
 </body>
 </html>
-

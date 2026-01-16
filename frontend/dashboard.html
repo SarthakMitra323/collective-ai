@@ -2,18 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Updated Viewport: Ensures layout resizes when keyboard opens & prevents zooming -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>Dashboard | Collective AI</title>
     <!-- Favicon -->
     <link rel="icon" href="images/Logo-favicon.png" type="image/png">
-
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PQTD3XFX');</script>
-    <!-- End Google Tag Manager -->
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,9 +41,11 @@
             background-color: var(--bg-deep);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
+            /* Use dynamic viewport height to account for mobile browser bars */
             height: 100vh;
+            height: 100dvh; 
             display: flex;
-            overflow: hidden;
+            overflow: hidden; /* Prevent body scroll, handle inside containers */
         }
 
         h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
@@ -64,6 +59,7 @@
             flex-direction: column;
             transition: transform 0.3s ease;
             z-index: 50;
+            height: 100%; 
         }
 
         .sidebar-header {
@@ -157,6 +153,8 @@
         .sidebar-footer {
             padding: 1rem;
             border-top: 1px solid var(--border);
+            /* Ensure footer is visible above safe area */
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
 
         .user-profile {
@@ -210,6 +208,8 @@
             flex-direction: column;
             position: relative;
             background: var(--bg-deep);
+            height: 100%;
+            overflow: hidden; /* Important for flex child scrolling */
         }
 
         /* Greeting Header */
@@ -222,6 +222,7 @@
             background: rgba(5, 5, 7, 0.8);
             backdrop-filter: blur(10px);
             z-index: 10;
+            flex-shrink: 0; /* Prevent shrinking */
         }
 
         .greeting h2 { font-size: 1.5rem; margin-bottom: 0.25rem; }
@@ -236,6 +237,7 @@
             flex-direction: column;
             gap: 1.5rem;
             scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
         }
 
         .message {
@@ -291,6 +293,9 @@
             padding: 1.5rem 2rem;
             background: var(--bg-deep);
             border-top: 1px solid var(--border);
+            flex-shrink: 0; /* Never shrink input area */
+            /* Add safe area for iPhone home bar */
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
         }
 
         .input-wrapper {
@@ -301,7 +306,7 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             display: flex;
-            align-items: center; /* Changed from flex-end to center */
+            align-items: center; /* Vertically center input items */
             padding: 0.75rem;
             transition: border-color 0.2s;
         }
@@ -342,21 +347,28 @@
 
         @media (max-width: 768px) {
             .sidebar {
-                position: fixed; left: -100%; height: 100%;
+                position: fixed; left: -100%; 
+                height: 100dvh; /* Full viewport height on mobile */
                 box-shadow: 10px 0 30px rgba(0,0,0,0.5);
             }
             .sidebar.open { transform: translateX(100%); left: -280px; }
             .mobile-toggle { display: block; margin-right: 1rem; }
+            
+            .chat-header { padding: 1rem; }
             .chat-container { padding: 1rem; }
+            
+            .input-area {
+                padding: 0.75rem 1rem;
+                /* Adjust padding for mobile + safe area */
+                padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+            }
+            
+            .message { max-width: 100%; }
         }
 
     </style>
 </head>
 <body>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PQTD3XFX"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
@@ -458,7 +470,7 @@
             appId: "1:851370153534:web:484314623047fd110ca36f",
             measurementId: "G-H1362YWCJB"
         };
-        const AI_BACKEND_URL = "http://localhost:3000/api/chat"; // Placeholder
+        const AI_BACKEND_URL = "http://localhost:3000/api/chat";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -756,5 +768,4 @@
 
     </script>
 </body>
-
 </html>
