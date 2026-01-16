@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Updated Viewport: Ensures layout resizes when keyboard opens & prevents zooming -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>Dashboard | Collective AI</title>
     <!-- Favicon -->
@@ -57,7 +56,7 @@
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease;
+            transition: left 0.3s ease, transform 0.3s ease;
             z-index: 50;
             height: 100%; 
         }
@@ -66,12 +65,30 @@
             padding: 1.5rem;
             display: flex;
             align-items: center;
+            justify-content: space-between; /* Align logo and close btn */
             gap: 0.75rem;
             border-bottom: 1px solid var(--border);
         }
 
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
         .logo-img { height: 28px; width: auto; border-radius: 4px; }
         .logo-text { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; }
+
+        .close-sidebar-btn {
+            display: none; /* Hidden on desktop */
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+        
+        .close-sidebar-btn:hover { color: var(--text-main); }
 
         .sidebar-content {
             flex: 1;
@@ -200,6 +217,20 @@
         }
 
         .btn-signout:hover { border-color: var(--error); color: var(--error); }
+
+        /* --- MOBILE OVERLAY --- */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 40; /* Below sidebar (50), above main content */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
         /* --- MAIN AREA --- */
         .main-content {
@@ -347,12 +378,16 @@
 
         @media (max-width: 768px) {
             .sidebar {
-                position: fixed; left: -100%; 
+                position: fixed; 
+                left: -280px; /* Hide completely off-screen */
                 height: 100dvh; /* Full viewport height on mobile */
                 box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth slide */
             }
-            .sidebar.open { transform: translateX(100%); left: -280px; }
+            .sidebar.open { left: 0; } /* Slide in */
+            
             .mobile-toggle { display: block; margin-right: 1rem; }
+            .close-sidebar-btn { display: block; } /* Show close btn */
             
             .chat-header { padding: 1rem; }
             .chat-container { padding: 1rem; }
@@ -370,11 +405,18 @@
 </head>
 <body>
 
+    <!-- Overlay for mobile sidebar -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <img src="images/Logo.png" alt="Logo" class="logo-img">
-            <span class="logo-text">Collective AI</span>
+            <div class="logo-container">
+                <img src="images/Logo.png" alt="Logo" class="logo-img">
+                <span class="logo-text">Collective AI</span>
+            </div>
+            <!-- Close Button (Mobile Only) -->
+            <i class="ph ph-x close-sidebar-btn" id="sidebar-close"></i>
         </div>
 
         <div class="sidebar-content">
@@ -470,7 +512,7 @@
             appId: "1:851370153534:web:484314623047fd110ca36f",
             measurementId: "G-H1362YWCJB"
         };
-        const AI_BACKEND_URL = "http://localhost:3000/api/chat";
+        const AI_BACKEND_URL = "http://localhost:3000/api/chat"; // Placeholder
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -488,6 +530,8 @@
         const signoutBtn = document.getElementById('signout-btn');
         const menuToggle = document.getElementById('menu-toggle');
         const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const closeBtn = document.getElementById('sidebar-close');
 
         let currentUser = null;
         let currentSessionId = null;
@@ -561,7 +605,10 @@
                     const div = document.createElement('div');
                     div.className = `session-item ${session.id === currentSessionId ? 'active' : ''}`;
                     div.textContent = session.title || "New Chat";
-                    div.onclick = () => loadSession(session.id);
+                    div.onclick = () => {
+                        loadSession(session.id);
+                        toggleSidebar(false); // Auto-close on mobile when selecting
+                    };
                     sessionList.appendChild(div);
                 });
 
@@ -587,6 +634,7 @@
                 // We don't save to DB until the first user message to avoid empty docs
                 document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
             }
+            toggleSidebar(false); // Auto-close sidebar on mobile
         }
 
         async function loadSession(sessionId) {
@@ -761,10 +809,20 @@
             });
         });
 
-        // Mobile Menu
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-        });
+        // Mobile Menu Handling
+        function toggleSidebar(show) {
+            if (show) {
+                sidebar.classList.add('open');
+                overlay.classList.add('active');
+            } else {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            }
+        }
+
+        menuToggle.addEventListener('click', () => toggleSidebar(true));
+        closeBtn.addEventListener('click', () => toggleSidebar(false));
+        overlay.addEventListener('click', () => toggleSidebar(false));
 
     </script>
 </body>
