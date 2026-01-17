@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 | Signal Lost</title>
     <!-- Favicon -->
-    <link rel="icon" href="images/Logo-favicon.png" type="image/png">
+    <link rel="icon" href="/frontend/images/Logo-favicon.png" type="image/png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,11 +33,14 @@
             background-color: var(--bg-deep);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            height: 100vh;
+            /* CHANGED: min-height allows growth, overflow-y: auto prevents cutting off content on mobile */
+            min-height: 100vh;
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden; 
+            overflow-y: auto;
             position: relative;
         }
 
@@ -54,14 +57,16 @@
         /* --- CONTENT --- */
         .container {
             text-align: center;
-            z-index: 10;
+            position: relative;
+            z-index: 20; /* Higher z-index to ensure it floats above all bg elements */
             padding: 2rem;
             max-width: 600px;
+            width: 100%;
         }
 
         .error-code {
             font-family: 'Space Grotesk', monospace;
-            font-size: 8rem;
+            font-size: clamp(6rem, 15vw, 10rem); /* Responsive font size */
             font-weight: 700;
             line-height: 1;
             margin-bottom: 1rem;
@@ -94,7 +99,7 @@
 
         h2 {
             font-family: 'Outfit', sans-serif;
-            font-size: 2rem;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
             margin-bottom: 1rem;
             background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
             -webkit-background-clip: text;
@@ -121,6 +126,10 @@
             font-weight: 600;
             transition: all 0.3s ease;
             box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+            cursor: pointer;
+            position: relative;
+            z-index: 30; /* Ensure button is clickable */
+            opacity: 0; /* Initial state for GSAP */
         }
 
         .btn-home:hover {
@@ -166,6 +175,7 @@
         <h2>Neural Link Severed</h2>
         <p>The collective knowledge you are looking for has either moved or does not exist in this timeline. Or perhaps, we are still building this neural pathway.</p>
         
+        <!-- Button with explicit z-index and relative path -->
         <a href="../index.html" class="btn-home">
             <i class="ph ph-house"></i> Return to Collective
         </a>
@@ -249,11 +259,18 @@
         window.addEventListener('resize', init);
         init();
 
-        // GSAP Entrance
-        gsap.from(".error-code", { y: -50, opacity: 0, duration: 1, ease: "bounce.out" });
-        gsap.from("h2", { y: 20, opacity: 0, duration: 1, delay: 0.5 });
-        gsap.from("p", { y: 20, opacity: 0, duration: 1, delay: 0.7 });
-        gsap.from(".btn-home", { scale: 0.8, opacity: 0, duration: 0.5, delay: 1 });
+        // GSAP Entrance - Enhanced for visibility
+        // Explicitly set opacity to 1 at the end using fromTo
+        const tl = gsap.timeline();
+        
+        tl.from(".error-code", { y: -50, opacity: 0, duration: 1, ease: "bounce.out" })
+          .from("h2", { y: 20, opacity: 0, duration: 1 }, "-=0.5")
+          .from("p", { y: 20, opacity: 0, duration: 1 }, "-=0.7")
+          .fromTo(".btn-home", 
+             { scale: 0.8, opacity: 0 }, 
+             { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" }, 
+             "-=0.5"
+          );
 
     </script>
 </body>
