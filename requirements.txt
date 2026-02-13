@@ -1,0 +1,9 @@
+torch
+transformers
+datasets
+accelerate
+fastapi
+uvicorn
+pydantic
+chromadb
+sentence-transformers

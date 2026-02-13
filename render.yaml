@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: collective-ai-backend
+    runtime: python
+    pythonVersion: 3.11
+    plan: standard
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: PYTHONUNBUFFERED
+        value: true
+    autoDeploy: true
+    domains:
+      - key: RENDER_EXTERNAL_HOSTNAME
+    routes:
+      - path: /
+        matchType: prefix
+        priority: 10
+    healthCheckPath: /
+    timeout: 300
+    scaling:
+      minInstances: 1
+      maxInstances: 4
+      targetMemoryPercent: 60
+      targetCPUPercent: 70
+    pullRequestPreviewsEnabled: true
+
+  - type: web
+    name: collective-ai-frontend
+    runtime: static
+    buildCommand: echo "Static assets ready"
+    publishPath: ./frontend
+    routes:
+      - path: /*
+        matchType: catch-all
+        destination: /index.html
+    domains:
+      - key: RENDER_EXTERNAL_HOSTNAME
+    autoDeploy: true

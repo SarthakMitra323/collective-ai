@@ -1,0 +1,13 @@
+frontend/
+.git
+.gitignore
+.DS_Store
+*.log
+node_modules/
+.env.local
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/

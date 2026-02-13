@@ -1,0 +1,11 @@
+backend/
+__pycache__/
+*.py
+.git
+.gitignore
+requirements.txt
+*.pyc
+.DS_Store
+node_modules/
+.env.local
+*.log
