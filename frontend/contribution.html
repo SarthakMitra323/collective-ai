@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <title>Contribute | Collective AI</title>
+    <!-- Favicon -->
+    <link rel="icon" href="images/Logo-favicon.png" type="image/png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --bg-deep: #050507;
+            --bg-panel: #0a0a0f;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent: #a855f7;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-hover: rgba(255, 255, 255, 0.08);
+            --success: #10b981;
+            --error: #ef4444;
+            --code-bg: #1e1e24;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: left 0.3s ease, transform 0.3s ease;
+            z-index: 50;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-container { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-img { height: 28px; width: auto; border-radius: 4px; }
+        .logo-text { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; }
+
+        .close-sidebar-btn {
+            display: none; font-size: 1.25rem; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s;
+        }
+        .close-sidebar-btn:hover { color: var(--text-main); }
+
+        .sidebar-content {
+            flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;
+        }
+
+        .btn-back-dashboard {
+            width: 100%; padding: 0.75rem;
+            background: var(--glass); color: var(--text-muted); border: 1px solid var(--border);
+            border-radius: 8px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            transition: all 0.2s; margin-bottom: 1rem;
+        }
+        .btn-back-dashboard:hover { background: var(--glass-hover); color: var(--text-main); border-color: var(--text-muted); }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem;
+            color: var(--text-muted); text-decoration: none; border-radius: 8px;
+            transition: all 0.2s; cursor: pointer;
+        }
+        .nav-item:hover, .nav-item.active { background: var(--glass-hover); color: var(--text-main); }
+        .nav-item.active { color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+
+        /* --- MAIN AREA --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--bg-deep);
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(5, 5, 7, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 10;
+        }
+
+        .header-title h2 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+        .header-title p { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* --- EDITOR STYLES --- */
+        .editor-container {
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* 1. Meta Data Section */
+        .meta-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: var(--bg-panel);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .title-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            outline: none;
+        }
+        .title-input::placeholder { color: rgba(255,255,255,0.2); }
+
+        .meta-grid {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .meta-input {
+            width: 100%;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s;
+        }
+        .meta-input:focus { border-color: var(--primary); outline: none; }
+
+        .image-upload-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: var(--glass);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .image-upload-label:hover { border-color: var(--primary); color: var(--text-main); background: var(--glass-hover); }
+
+        /* Image Preview Area */
+        #image-preview-container {
+            width: 100%;
+            height: 200px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none; /* Hidden by default */
+            margin-top: 0.5rem;
+            border: 1px solid var(--border);
+        }
+        #image-preview { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 2. Rich Text Editor */
+        .editor-wrapper {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            background: var(--bg-panel);
+            flex: 1;
+            min-height: 500px;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 0.4rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .tool-btn:hover { background: var(--glass-hover); color: var(--text-main); }
+        
+        .separator { width: 1px; height: 20px; background: var(--border); margin: 0 0.5rem; }
+
+        /* Code+ Button (Special) */
+        .code-plus-btn {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            gap: 0.4rem;
+        }
+        .code-plus-btn:hover { background: var(--primary); color: white; }
+
+        /* Text Area */
+        .main-textarea {
+            flex: 1;
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 1.5rem;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            resize: none;
+            outline: none;
+        }
+        
+        /* Code Block Styling (Visual only inside textarea technically not possible without div, 
+           so we use monospace font for code blocks if user types them) */
+        .main-textarea { font-variant-ligatures: common-ligatures; }
+
+        /* Submit Area */
+        .action-row {
+            display: flex;
+            justify-content: flex-end;
+            padding-bottom: 2rem;
+        }
+
+        .btn-submit {
+            padding: 0.85rem 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; filter: grayscale(0.8); transform: none; }
+
+        /* Notification */
+        .notification {
+            position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 1.5rem;
+            border-radius: 8px; background: var(--bg-panel); border: 1px solid var(--border);
+            color: var(--text-main); display: flex; align-items: center; gap: 0.75rem;
+            transform: translateY(100px); opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .notification.show { transform: translateY(0); opacity: 1; }
+        .notification.success { border-left: 4px solid var(--success); }
+        .notification.error { border-left: 4px solid var(--error); }
+
+        /* --- MOBILE --- */
+        .mobile-toggle { display: none; font-size: 1.5rem; cursor: pointer; color: white; margin-right: 1rem; }
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: -280px; height: 100dvh; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
+            .sidebar.open { left: 0; }
+            .mobile-toggle { display: block; }
+            .close-sidebar-btn { display: block; }
+            .editor-container { padding: 1rem; }
+            .content-header { padding: 1rem; }
+            .toolbar { gap: 0.25rem; } 
+            .tool-btn { padding: 0.3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="images/Logo.jpg" alt="Logo" class="logo-img">
+                <span class="logo-text">Collective AI</span>
+            </div>
+            <i class="ph ph-x close-sidebar-btn" id="sidebar-close"></i>
+        </div>
+
+        <div class="sidebar-content">
+            <button class="btn-back-dashboard" onclick="window.location.href='dashboard.html'">
+                <i class="ph ph-arrow-left"></i> Back to Chat
+            </button>
+
+            <a href="leaderboard.html" class="nav-item">
+                <i class="ph ph-trophy"></i> Leaderboard
+            </a>
+            <a href="#" class="nav-item active">
+                <i class="ph ph-pencil-simple"></i> Contribute
+            </a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="content-header">
+            <div style="display:flex; align-items:center;">
+                <i class="ph ph-list mobile-toggle" id="menu-toggle"></i>
+                <div class="header-title">
+                    <h2>Contribute Knowledge</h2>
+                    <p>Expand the neural fabric with your expertise.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-container">
+            
+            <!-- 1. Metadata Section -->
+            <div class="meta-section">
+                <input type="text" id="article-title" class="title-input" placeholder="Article Title...">
+                
+                <div class="meta-grid">
+                    <div class="input-group">
+                        <input type="text" id="article-topics" class="meta-input" placeholder="Topics (e.g. AI, Physics)">
+                    </div>
+                    <label class="image-upload-label">
+                        <i class="ph ph-image"></i> Add Cover Image
+                        <input type="file" id="image-upload" accept="image/*" hidden>
+                    </label>
+                </div>
+                
+                <div id="image-preview-container">
+                    <img id="image-preview" src="" alt="Cover Preview">
+                </div>
+            </div>
+
+            <!-- 2. Rich Editor -->
+            <div class="editor-wrapper">
+                <div class="toolbar">
+                    <button class="tool-btn" onclick="insertFormat('**', '**')" title="Bold"><i class="ph ph-text-b"></i></button>
+                    <button class="tool-btn" onclick="insertFormat('*', '*')" title="Italic"><i class="ph ph-text-italic"></i></button>
+                    <button class="tool-btn" onclick="insertFormat('### ', '')" title="Heading"><i class="ph ph-text-h"></i></button>
+                    <div class="separator"></div>
+                    <button class="tool-btn" onclick="insertFormat('- ', '')" title="List"><i class="ph ph-list-bullets"></i></button>
+                    <button class="tool-btn" onclick="insertFormat('> ', '')" title="Quote"><i class="ph ph-quotes"></i></button>
+                    <div class="separator"></div>
+                    
+                    <!-- Code+ Button -->
+                    <button class="tool-btn code-plus-btn" onclick="insertCodeBlock()">
+                        <i class="ph ph-code"></i> Code+
+                    </button>
+                </div>
+                
+                <textarea id="main-content" class="main-textarea" placeholder="Start writing your article... Use the toolbar to format."></textarea>
+            </div>
+
+            <div class="action-row">
+                <button id="submit-btn" class="btn-submit">
+                    <i class="ph ph-paper-plane-right"></i> Publish to Collective
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Notification -->
+    <div id="notification" class="notification">
+        <i id="notif-icon" class="ph ph-check-circle" style="font-size: 1.2rem;"></i>
+        <span id="notif-msg">Knowledge added successfully.</span>
+    </div>
+
+    <!-- Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- CONFIG ---
+        const firebaseConfig = JSON.parse(localStorage.getItem('firebaseConfig') || '{}');
+        const appConfig = (typeof __firebase_config !== 'undefined') ? JSON.parse(__firebase_config) : firebaseConfig;
+        const API_URL = "http://localhost:3000/api/contribute"; 
+
+        const app = initializeApp(appConfig);
+        const auth = getAuth(app);
+        let currentUser = null;
+
+        // --- AUTH CHECK ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) currentUser = user;
+            else window.location.href = 'app.html';
+        });
+
+        // --- UI ELEMENTS ---
+        const titleInput = document.getElementById('article-title');
+        const topicsInput = document.getElementById('article-topics');
+        const textArea = document.getElementById('main-content');
+        const imageInput = document.getElementById('image-upload');
+        const imagePreview = document.getElementById('image-preview');
+        const previewContainer = document.getElementById('image-preview-container');
+        const submitBtn = document.getElementById('submit-btn');
+        const notification = document.getElementById('notification');
+        const notifMsg = document.getElementById('notif-msg');
+        const notifIcon = document.getElementById('notif-icon');
+
+        // Sidebar Logic
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const menuToggle = document.getElementById('menu-toggle');
+        const closeBtn = document.getElementById('sidebar-close');
+
+        function toggleSidebar(show) {
+            if(show) { sidebar.classList.add('open'); overlay.classList.add('active'); }
+            else { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
+        }
+        menuToggle.addEventListener('click', () => toggleSidebar(true));
+        closeBtn.addEventListener('click', () => toggleSidebar(false));
+        overlay.addEventListener('click', () => toggleSidebar(false));
+
+        // --- EDITOR LOGIC ---
+        
+        // 1. Image Preview
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. Toolbar Functions (Exposed to window for onclick)
+        window.insertFormat = (prefix, suffix) => {
+            const start = textArea.selectionStart;
+            const end = textArea.selectionEnd;
+            const text = textArea.value;
+            const before = text.substring(0, start);
+            const selection = text.substring(start, end);
+            const after = text.substring(end);
+
+            textArea.value = before + prefix + selection + suffix + after;
+            textArea.focus();
+            textArea.selectionStart = textArea.selectionEnd = start + prefix.length + selection.length + suffix.length;
+        };
+
+        window.insertCodeBlock = () => {
+            const template = "\n```python\n# Write your code here\nprint('Hello World')\n```\n";
+            insertFormat(template, "");
+        };
+
+        // --- SUBMISSION LOGIC ---
+        submitBtn.addEventListener('click', async () => {
+            const title = titleInput.value.trim();
+            const topics = topicsInput.value.trim();
+            const body = textArea.value.trim();
+
+            if (!title || body.length < 50) {
+                showNotification('error', 'Please provide a title and at least 50 characters of content.');
+                return;
+            }
+
+            setLoading(true);
+
+            // Construct composite text for RAG backend (which expects a single string)
+            // Ideally, backend schema would be updated, but this ensures compatibility with rag.py
+            const compositeText = `TITLE: ${title}\nTOPICS: ${topics}\n\n${body}`;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: compositeText,
+                        userId: currentUser ? currentUser.uid : "anonymous"
+                    })
+                });
+
+                if (!response.ok) throw new Error('Server error');
+
+                showNotification('success', 'Knowledge assimilated into the Collective.');
+                
+                // Clear Form
+                titleInput.value = '';
+                topicsInput.value = '';
+                textArea.value = '';
+                imageInput.value = '';
+                previewContainer.style.display = 'none';
+
+            } catch (error) {
+                console.error(error);
+                showNotification('error', 'Failed to connect to the neural core.');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function setLoading(isLoading) {
+            if(isLoading) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="ph ph-spinner" style="animation: spin 1s linear infinite;"></i> Processing...';
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="ph ph-paper-plane-right"></i> Publish to Collective';
+            }
+        }
+
+        function showNotification(type, msg) {
+            notifMsg.textContent = msg;
+            notification.className = `notification show ${type}`;
+            notifIcon.className = type === 'success' ? 'ph ph-check-circle' : 'ph ph-warning-circle';
+            notifIcon.style.color = type === 'success' ? 'var(--success)' : 'var(--error)';
+            setTimeout(() => notification.classList.remove('show'), 4000);
+        }
+
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+        document.head.appendChild(styleSheet);
+
+    </script>
+</body>
+</html>
