@@ -2,7 +2,6 @@
   "buildCommand": "echo 'Frontend deployment ready'",
   "outputDirectory": "./frontend",
   "public": true,
-  "framework": "static",
   "env": {
     "BACKEND_URL": "@backend-url"
   },
@@ -35,3 +34,4 @@
     { "src": "/(.*)", "status": 404, "dest": "/frontend/page_not_found.html" }
   ]
 }
+
