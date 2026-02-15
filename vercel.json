@@ -1,10 +1,11 @@
 {
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/api/:match*", "dest": "https://your-actual-backend-name.onrender.com/api/:match*" },
+    { "src": "/api/:match*", "dest": "https://collective-ai.onrender.com/api/:match*" },
     { "src": "/(.*)", "status": 404, "dest": "/frontend/page_not_found.html" }
   ]
 }
+
 
 
 
