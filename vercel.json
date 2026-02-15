@@ -1,37 +1,8 @@
 {
-  "buildCommand": "echo 'Frontend deployment ready'",
-  "outputDirectory": "./frontend",
-  "public": true,
-  "env": {
-    "BACKEND_URL": "@backend-url"
-  },
-  "regions": ["sfo1"],
-  "functions": {
-    "api/**/*.js": {
-      "memory": 3008,
-      "maxDuration": 300
-    }
-  },
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store"
-        }
-      ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/?(.*)",
-      "destination": "${BACKEND_URL}/api/$1"
-    }
-  ],
   "routes": [
     { "handle": "filesystem" },
     { "src": "/(.*)", "status": 404, "dest": "/frontend/page_not_found.html" }
   ]
 }
+
 
