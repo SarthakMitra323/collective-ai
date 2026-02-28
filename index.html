@@ -6,528 +6,233 @@
     <title>Collective AI | Intelligence, Democratized</title>
     <meta name="description" content="Collective AI - Growing stronger as the community grows.">
     <!-- Favicon -->
-    <link rel="icon" href="frontend\images\Logo-favicon.png" type="image/png">
+    <link rel="icon" href="frontend/images/Logo-favicon.png" type="image/png">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Libraries: GSAP, ScrollTrigger, Vanilla Tilt, Phosphor Icons -->
+    <!-- Libraries -->
+    <!-- GSAP & ScrollTrigger -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+    <!-- Lenis Smooth Scroll (Crucial for cinematic feel) -->
+    <script src="https://unpkg.com/@studio-freight/lenis@1.0.39/dist/lenis.min.js"></script>
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
-        /* --- CSS VARIABLES & RESET --- */
+        /* --- CORE STYLES & RESET --- */
         :root {
-            --bg-deep: #050507;
-            --bg-panel: rgba(255, 255, 255, 0.03);
-            --primary: #6366f1; /* Indigo */
-            --accent: #a855f7; /* Purple */
-            --text-main: #ffffff;
+            --bg-deep: #030305;
+            --bg-panel: rgba(255, 255, 255, 0.02);
+            --primary: #6366f1;
+            --accent: #a855f7;
+            --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --glass-card: rgba(10, 10, 15, 0.65);
-            --glow: 0 0 20px rgba(99, 102, 241, 0.5);
-            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --glass-border: rgba(255, 255, 255, 0.05);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        html.lenis { height: auto; }
+        .lenis.lenis-smooth { scroll-behavior: auto !important; }
+        .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+        .lenis.lenis-stopped { overflow: hidden; }
+        .lenis.lenis-scrolling iframe { pointer-events: none; }
 
         body {
-            background-color: var(--bg-deep);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            /* Visibility hidden initially to let Preloader handle reveal */
-            visibility: hidden; 
+            background-color: var(--bg-deep); color: var(--text-main);
+            font-family: 'Inter', sans-serif; overflow-x: hidden;
+            -webkit-font-smoothing: antialiased; visibility: hidden; /* Prevent FOUC */
         }
 
-        h1, h2, h3 {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 700;
-        }
+        h1, h2, h3, h4, .font-display { font-family: 'Plus Jakarta Sans', sans-serif; }
+        a { text-decoration: none; color: inherit; }
+        img { max-width: 100%; display: block; object-fit: cover; }
 
-        a {
-            text-decoration: none;
-            color: inherit;
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 0%, #a855f7 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;
         }
 
         /* --- PRELOADER --- */
         #preloader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            visibility: visible; /* Override body visibility */
+            position: fixed; inset: 0; background: #000; z-index: 9999;
+            display: flex; justify-content: center; align-items: center; visibility: visible;
         }
-
-        .loader-text {
-            font-family: 'Space Grotesk', 'Outfit', sans-serif;
-            font-size: 1.2rem;
-            letter-spacing: 0.1em;
-            color: var(--primary);
-            margin-top: 1rem;
-            animation: pulse 1.5s infinite ease-in-out;
-        }
-
-        .loader-bar {
-            width: 200px;
-            height: 2px;
-            background: rgba(255,255,255,0.1);
-            margin-top: 1rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .loader-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 0%;
-            background: var(--accent);
-            animation: loading 2s ease-in-out forwards;
-        }
-
-        @keyframes loading {
-            0% { width: 0%; }
-            100% { width: 100%; }
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
-
-        /* --- BACKGROUND CANVAS --- */
-        #network-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background: radial-gradient(circle at center, #111118 0%, #050507 100%);
-            opacity: 0; /* GSAP will fade this in */
-        }
-
-        /* --- UTILITIES --- */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #fff 0%, #a855f7 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: inline-block;
+        .preloader-brand { font-size: 1.5rem; font-weight: 800; font-family: 'Plus Jakarta Sans'; letter-spacing: 2px; }
+        .preloader-progress {
+            position: absolute; bottom: 0; left: 0; height: 3px; background: var(--primary); width: 0%;
         }
 
         /* --- NAVIGATION --- */
         .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem 0;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 100;
-            background: transparent;
-            transition: background 0.4s ease, padding 0.4s ease;
+            position: fixed; width: 100%; top: 0; z-index: 100; padding: 1.5rem 0;
+            transition: all 0.4s ease;
         }
-
         .navbar.scrolled {
-            background: rgba(5, 5, 7, 0.85);
-            backdrop-filter: blur(12px);
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--glass-border);
+            background: rgba(3, 3, 5, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            padding: 1rem 0; border-bottom: 1px solid var(--glass-border);
         }
-
-        .logo {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .logo-img {
-            height: 32px;
-            width: auto;
-            border-radius: 6px;
-            object-fit: contain;
-            flex-shrink: 0;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .nav-item {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            font-weight: 500;
-            position: relative;
-        }
+        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; font-size: 1.2rem; font-family: 'Plus Jakarta Sans'; }
+        .logo img { height: 24px; border-radius: 4px; }
         
-        .nav-item::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            background: var(--primary);
-            transform: scaleX(0);
-            transform-origin: right;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-item { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; transition: color 0.3s; }
+        .nav-item:hover { color: var(--text-main); }
         
-        .nav-item:hover {
-            color: var(--text-main);
+        .nav-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+            padding: 0.5rem 1.25rem; border-radius: 50px; font-size: 0.85rem; font-weight: 600;
+            transition: all 0.3s;
         }
+        .nav-btn:hover { background: #fff; color: #000; }
         
-        .nav-item:hover::after {
-            transform: scaleX(1);
-            transform-origin: left;
-        }
+        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; }
 
-        .nav-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
+        /* --- CINEMATIC HERO --- */
+        .hero-section {
+            height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
         }
-
-        .menu-toggle {
-            display: none;
-            cursor: pointer;
-            font-size: 1.5rem;
-            color: var(--text-main);
-            z-index: 101;
+        .hero-bg {
+            position: absolute; inset: 0; z-index: 0;
+            background: radial-gradient(circle at center, rgba(99,102,241,0.15) 0%, transparent 60%);
+            transform-origin: center center;
         }
-
-        /* --- BUTTONS (Standard Interactions) --- */
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 50px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-block;
-            border: 1px solid transparent;
-            text-align: center;
-            position: relative;
-            overflow: hidden; /* For shimmer */
-            z-index: 1;
-            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
-        }
-
-        /* Simple Shimmer on Hover (Non-magnetic) */
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -150%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                120deg, 
-                transparent, 
-                rgba(255, 255, 255, 0.6), 
-                transparent
-            );
-            transform: skewX(-20deg);
-            transition: 0s;
-        }
-
-        .btn:hover::before {
-            left: 150%;
-            transition: 0.6s ease-in-out;
-        }
-
-        .btn-ghost {
-            color: var(--text-main);
-            border: 1px solid var(--glass-border);
-            background: transparent;
-        }
-        
-        .btn-ghost:hover {
-            border-color: var(--primary);
-            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
-            text-shadow: 0 0 8px rgba(255,255,255,0.5);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-        }
-
-        /* Glow on Hover */
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 30px rgba(99, 102, 241, 0.6), 
-                        0 0 60px rgba(168, 85, 247, 0.3);
-        }
-
-        /* --- HERO SECTION --- */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding-top: 4rem;
-            position: relative;
-            width: 100%;
-        }
-
         .hero-content {
-            max-width: 900px;
-            width: 100%;
-            padding: 0 1rem;
+            position: relative; z-index: 1; text-align: center; max-width: 1000px; padding-top: 5vh;
+        }
+        .hero-label {
+            display: inline-block; padding: 0.5rem 1rem; border-radius: 50px;
+            border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.05);
+            color: #d8b4fe; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+        .hero-title {
+            font-size: clamp(3.5rem, 8vw, 7rem); font-weight: 800; line-height: 1.05;
+            letter-spacing: -0.04em; margin-bottom: 1.5rem;
+        }
+        .hero-desc {
+            font-size: clamp(1.1rem, 2vw, 1.4rem); color: var(--text-muted);
+            max-width: 600px; margin: 0 auto 3rem auto; line-height: 1.6;
+        }
+        .btn-primary {
+            display: inline-block; background: #fff; color: #000;
+            padding: 1rem 2.5rem; border-radius: 50px; font-weight: 700; font-size: 1rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn-primary:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(255,255,255,0.2); }
+
+        /* --- HORIZONTAL MARQUEE (CSS Animated for smoothness and readability) --- */
+        .marquee-section { 
+            padding: 4rem 0; overflow: hidden; white-space: nowrap; 
+            border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); 
+            display: flex; background: rgba(0, 0, 0, 0.3);
+        }
+        .marquee-content { 
+            display: flex; animation: scrollMarquee 35s linear infinite; padding-right: 2rem; 
+        }
+        .marquee-text {
+            font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: clamp(2rem, 5vw, 4.5rem);
+            color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: -0.01em;
+        }
+        .marquee-text span { color: #fff; }
+
+        @keyframes scrollMarquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
         }
 
-        .reveal-container {
-            overflow: hidden;
-            display: block;
+        /* --- CINEMATIC PINNED SEQUENCE --- */
+        .story-container { position: relative; background: var(--bg-deep); }
+        .story-scroll-area { height: 400vh; position: relative; } 
+        
+        .story-pin-wrap {
+            position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; align-items: center; overflow: hidden;
         }
 
-        .hero h1 {
-            font-size: 5rem;
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-            font-weight: 800;
+        .story-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; width: 100%; 
+            height: 80vh; max-height: 800px; max-width: 1400px; margin: 0 auto; padding: 0 2rem;
         }
 
-        .hero p {
-            font-size: 1.25rem;
-            color: var(--text-muted);
-            margin-bottom: 2.5rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+        /* Left side: Text (High z-index to stay above images) */
+        .story-text-col { 
+            position: relative; display: flex; flex-direction: column; justify-content: center; 
+            height: 100%; z-index: 10; 
+        }
+        .story-text-block { 
+            position: absolute; left: 0; right: 0; opacity: 0; transform: translateY(50px); 
+        }
+        
+        .story-step-num { font-size: 0.9rem; color: var(--primary); font-family: 'Plus Jakarta Sans'; font-weight: 700; margin-bottom: 1rem; letter-spacing: 2px;}
+        .story-text-block h2 { font-size: clamp(2.5rem, 4vw, 4rem); line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -0.02em; text-shadow: 0 4px 30px rgba(0,0,0,1); }
+        .story-text-block p { font-size: 1.15rem; color: #f1f5f9; max-width: 450px; line-height: 1.6; text-shadow: 0 2px 15px rgba(0,0,0,1); font-weight: 500; }
+
+        /* Right side: Image Sequence */
+        .story-img-col { 
+            position: relative; height: 100%; border-radius: 24px; overflow: hidden; 
+            border: 1px solid var(--glass-border); z-index: 1; background: #000;
+        }
+        .story-img {
+            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+            opacity: 0; transform: scale(1.1); filter: brightness(0.6) contrast(1.1);
+        }
+        /* Fade edge to blend with background and darken behind text */
+        .story-img::after {
+            content: ''; position: absolute; inset: 0; 
+            background: linear-gradient(to right, var(--bg-deep) 0%, rgba(3,3,5,0.6) 40%, transparent 100%);
         }
 
-        .hero-btns {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
+        /* --- THE CORE (Dark Mode Detail) --- */
+        .core-section { padding: 8rem 0; position: relative; text-align: center; }
+        .core-section::before {
+            content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 1px; height: 80px; background: linear-gradient(to bottom, transparent, var(--primary));
         }
-
-        /* --- FEATURES & PRESSURE POINTS --- */
-        .features, .pressure-points {
-            padding: 8rem 0;
+        .core-box {
+            background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border);
+            border-radius: 32px; padding: 4rem 2rem; max-width: 1000px; margin: 0 auto;
+            position: relative; overflow: hidden;
+            box-shadow: 0 0 100px rgba(99, 102, 241, 0.05);
         }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 5rem;
-        }
-
-        .section-title {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .section-subtitle {
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            font-size: 0.85rem;
-            font-weight: 600;
-            display: inline-block;
-            margin-bottom: 1rem;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .card {
-            background: var(--bg-panel);
-            border: 1px solid var(--glass-border);
-            padding: 2.5rem;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            opacity: 0; 
-            transform: translateY(50px);
-            /* Preserve 3D effect */
-            transform-style: preserve-3d;
-            transform: perspective(1000px);
-        }
-
-        .icon-box {
-            width: 60px;
-            height: 60px;
-            border-radius: 16px;
-            background: rgba(99, 102, 241, 0.1);
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            font-size: 1.75rem;
-            border: 1px solid rgba(99, 102, 241, 0.2);
-            transform: translateZ(20px); /* 3D pop */
-        }
-
-        .card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            transform: translateZ(20px);
-        }
-
-        .card p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            transform: translateZ(20px);
-        }
-
-        /* --- MOTTO SECTION --- */
-        .motto {
-            padding: 8rem 0;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            min-height: 80vh; /* Increased height for new content */
-            display: flex;
-            align-items: center;
-        }
-
-        .motto-text-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        /* UPDATED: Crystal Clear Readability - No Shadow/Blur */
-        .motto-text {
-            font-size: 5rem;
-            font-weight: 800; /* Extra Bold */
-            line-height: 1.1;
-            color: #ffffff; 
-            letter-spacing: -0.02em; 
-            opacity: 0; 
-        }
-
-        .motto-line {
-            width: 0%;
-            height: 4px; 
-            background: var(--accent);
-            margin: 2rem auto;
-            border-radius: 2px;
-            box-shadow: 0 0 15px var(--accent); /* Glow effect */
-        }
-
-        .motto-desc {
-            max-width: 700px;
-            margin: 0 auto 3rem auto;
-            font-size: 1.25rem;
-            color: #e2e8f0; /* Much lighter grey */
-            line-height: 1.8;
-            opacity: 0; /* Hidden initially */
-            transform: translateY(20px);
-            font-weight: 400;
-        }
-
-        .motto-btn-wrapper {
-            opacity: 0;
-        }
+        .core-box h2 { font-size: clamp(2rem, 5vw, 4rem); margin-bottom: 1.5rem; }
+        .core-box p { color: var(--text-muted); font-size: 1.15rem; max-width: 600px; margin: 0 auto 3rem auto; }
 
         /* --- FOOTER --- */
-        footer {
-            border-top: 1px solid var(--glass-border);
-            padding: 3rem 0;
-            margin-top: 4rem;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
+        footer { padding: 3rem 2rem; border-top: 1px solid var(--glass-border); text-align: center; }
+        footer .logo { justify-content: center; margin-bottom: 1rem; opacity: 0.5; }
+        footer p { color: var(--text-muted); font-size: 0.9rem; }
 
-        /* --- RESPONSIVE MEDIA QUERIES --- */
-        @media (max-width: 960px) {
-            .hero h1 { font-size: 4rem; }
+        /* --- MOBILE RESPONSIVE --- */
+        @media (max-width: 968px) {
+            .story-grid { 
+                grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: 2rem; 
+                height: 100dvh; padding-top: 15dvh; padding-bottom: 5dvh; 
+            }
+            .story-text-col { height: 30vh; justify-content: flex-start; }
+            .story-text-block { position: absolute; top: 0; }
+            .story-text-block h2 { font-size: 2.25rem; margin-bottom: 1rem; }
+            .story-text-block p { font-size: 1rem; }
+            
+            .story-img-col { height: 100%; min-height: 0; border-radius: 16px; }
+            /* Stronger fade top edge on mobile to ensure text readability */
+            .story-img::after { background: linear-gradient(to top, transparent 40%, rgba(3,3,5,0.8) 75%, var(--bg-deep) 100%); }
         }
 
         @media (max-width: 768px) {
-            .container { padding: 0 1.5rem; }
-            
-            /* Navbar Mobile */
-            .nav-links {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100vh;
-                background: rgba(5, 5, 7, 0.98);
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                transform: translateY(-100%);
-                transition: transform 0.4s ease-in-out;
-                z-index: 99;
-            }
-            
-            .nav-links.active {
-                transform: translateY(0);
-            }
-
-            .nav-actions { display: none; } /* Hide desktop buttons on mobile */
-            .menu-toggle { display: block; }
-            
-            /* Add Mobile buttons inside menu */
-            .mobile-auth {
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-                margin-top: 2rem;
-            }
-
-            /* Typography Scaling */
-            .hero h1 { font-size: 2.8rem; }
-            .hero p { font-size: 1rem; }
-            .hero-btns { flex-direction: column; width: 100%; }
-            .hero-btns .btn { width: 100%; }
-
-            .section-title { font-size: 2.2rem; }
-            .motto-text { font-size: 2.5rem; } /* Adjusted for mobile */
-            .motto-desc { font-size: 1rem; }
-            
-            .features, .pressure-points, .motto { padding: 4rem 0; }
-            
-            .grid {
-                grid-template-columns: 1fr;
-            }
+            .nav-links, .nav-actions { display: none; }
+            .menu-toggle { display: block; color: #fff; }
+            .hero-title { font-size: 3rem; }
+            .hero-desc { font-size: 1rem; }
+            .core-box { padding: 3rem 1.5rem; border-radius: 20px; }
+            .marquee-section { padding: 2.5rem 0; }
         }
     </style>
 </head>
@@ -535,439 +240,234 @@
 
     <!-- PRELOADER -->
     <div id="preloader">
-        <div class="loader-text">ESTABLISHING CONNECTION...</div>
-        <div class="loader-bar"></div>
+        <div class="preloader-brand">COLLECTIVE</div>
+        <div class="preloader-progress" id="progress-bar"></div>
     </div>
 
-    <!-- Background Animation -->
-    <canvas id="network-canvas"></canvas>
-
-    <!-- Navigation -->
+    <!-- NAVBAR -->
     <nav class="navbar" id="navbar">
-        <div class="container" style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+        <div class="container nav-inner">
             <a href="#" class="logo">
-                <img src="frontend\images\Logo.png" alt="Collective AI Logo" class="logo-img">
-                Collective AI
+                <img src="frontend/images/Logo.png" alt="C">
+                <span>Collective AI</span>
             </a>
-            
-            <div class="nav-links" id="nav-links">
-                <a href="#mission" class="nav-item">Mission</a>
-                <a href="#how-it-works" class="nav-item">How it Works</a>
-                <a href="frontend\app.html" class="nav-item">Community</a>
-                
-                <!-- Mobile Only Buttons -->
-                <div class="mobile-auth" style="display: none;"> <!-- Injected via JS for mobile logic check or handled by CSS -->
-                   <!-- Handled via JS cloning or CSS -->
-                </div>
+            <div class="nav-links">
+                <a href="#vision" class="nav-item">Vision</a>
+                <a href="#engine" class="nav-item">The Engine</a>
+                <!-- Updated Link to Auth Page -->
+                <a href="frontend/app.html" class="nav-item">Contribute</a>
             </div>
-
-            <!-- Desktop Actions -->
             <div class="nav-actions">
-                <a href="frontend\app.html" class="btn btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Log In</a>
-                <a href="frontend\app.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">Sign Up</a>
+                <a href="frontend/app.html" class="nav-btn">Launch Core</a>
             </div>
-            
-            <div class="menu-toggle" id="mobile-menu">≡</div>
+            <div class="menu-toggle"><i class="ph ph-list"></i></div>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <header class="hero">
+    <!-- CINEMATIC HERO -->
+    <section class="hero-section" id="hero">
+        <div class="hero-bg" id="hero-bg"></div>
         <div class="container hero-content">
+            <div class="hero-label">Human Synthesis Engine v1.0</div>
             <h1 class="hero-title">
-                <div class="reveal-container">Intelligence Beyond</div>
-                <div class="reveal-container"><span class="gradient-text">The Individual</span></div>
+                <div class="title-line">Intelligence</div>
+                <div class="title-line">Beyond The <span class="gradient-text">Individual</span></div>
             </h1>
-            <p class="hero-desc">We are building an AI not by scraping data, but by synthesizing human wisdom. Read articles, share expertise, and build the future.</p>
-            <div class="hero-btns">
-                <a href="frontend\app.html" class="btn btn-primary">Join the Collective</a>
-                <a href="#how-it-works" class="btn btn-ghost">Learn More</a>
-            </div>
+            <p class="hero-desc">The first neural network trained not by scraping the dark web, but by synthesizing the verified wisdom of experts.</p>
+            <a href="frontend/app.html" class="btn-primary">Initialize Access</a>
         </div>
-    </header>
-    
-    <!-- NEW SECTION: Pressure Points (The Problem) -->
-    <section class="pressure-points">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-subtitle">Why Collective AI?</span>
-                <h2 class="section-title">The Problem with "Black Boxes"</h2>
-            </div>
-            
-            <div class="grid">
-                <!-- Point 1: Trust -->
-                <div class="card" data-tilt data-tilt-max="5" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.1">
-                    <div class="icon-box" style="color: var(--accent); border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.1);">🛡️</div>
-                    <h3>Trust, Not Probability</h3>
-                    <p>Stop trusting statistical guesses. Start trusting verified human wisdom. We replace hallucination with attribution.</p>
+    </section>
+
+    <!-- MASSIVE SCROLLING TEXT (CSS Animated) -->
+    <section class="marquee-section" id="vision">
+        <!-- Duplicate content blocks for seamless infinite scroll -->
+        <div class="marquee-content">
+            <h2 class="marquee-text">
+                Stop trusting <span>statistical guesses</span> &nbsp;•&nbsp; Demand <span>verified wisdom</span> &nbsp;•&nbsp; 
+            </h2>
+        </div>
+        <div class="marquee-content">
+            <h2 class="marquee-text">
+                Stop trusting <span>statistical guesses</span> &nbsp;•&nbsp; Demand <span>verified wisdom</span> &nbsp;•&nbsp; 
+            </h2>
+        </div>
+        <div class="marquee-content">
+            <h2 class="marquee-text">
+                Stop trusting <span>statistical guesses</span> &nbsp;•&nbsp; Demand <span>verified wisdom</span> &nbsp;•&nbsp; 
+            </h2>
+        </div>
+    </section>
+
+    <!-- PINNED STORY SEQUENCE (THE SHOWSTOPPER) -->
+    <section class="story-container" id="engine">
+        <div class="story-scroll-area" id="story-trigger">
+            <div class="story-pin-wrap" id="story-pin">
+                
+                <div class="story-grid">
+                    <!-- Text Side (Z-index strictly higher to prevent overlap glitches) -->
+                    <div class="story-text-col">
+                        
+                        <!-- Step 1 -->
+                        <div class="story-text-block step-text-1">
+                            <div class="story-step-num">01 // INGESTION</div>
+                            <h2 class="font-display">Contribute<br>Expertise.</h2>
+                            <p>You provide the raw material. Write detailed articles, solve complex problems, and share your unique domain knowledge directly into the Collective Database.</p>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="story-text-block step-text-2">
+                            <div class="story-step-num">02 // VECTORIZATION</div>
+                            <h2 class="font-display">Neural<br>Mapping.</h2>
+                            <p>Our Retrieval-Augmented Generation (RAG) system instantly converts your text into mathematical vectors, finding hidden semantic connections between thousands of minds.</p>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="story-text-block step-text-3">
+                            <div class="story-step-num">03 // SYNTHESIS</div>
+                            <h2 class="font-display">Collective<br>Recall.</h2>
+                            <p>When asked a question, the AI doesn't hallucinate. It queries the vector space, retrieving verified human contributions to construct a perfectly synthesized answer.</p>
+                        </div>
+
+                    </div>
+
+                    <!-- Image Side -->
+                    <div class="story-img-col">
+                        <!-- Premium Dark Abstract Textures -->
+                        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-1" alt="Abstract Pattern">
+                        <img src="https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-2" alt="Neural Network Concept">
+                        <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-3" alt="Data Flow Concept">
+                    </div>
                 </div>
 
-                <!-- Point 2: Ethics -->
-                <div class="card" data-tilt data-tilt-max="5" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.1">
-                    <div class="icon-box" style="color: var(--accent); border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.1);">🤝</div>
-                    <h3>Built With You</h3>
-                    <p>Creators act as fuel for other models. Here, you are the engine. An AI built <em>with</em> you, not <em>off</em> you.</p>
-                </div>
-
-                <!-- Point 3: Relevance -->
-                <div class="card" data-tilt data-tilt-max="5" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.1">
-                    <div class="icon-box" style="color: var(--accent); border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.1);">⚡</div>
-                    <h3>Real-Time Evolution</h3>
-                    <p>Static models get stuck in the past. The Collective learns the moment you do. Intelligence that evolves at the speed of thought.</p>
-                </div>
-
-                <!-- Point 4: Depth -->
-                <div class="card" data-tilt data-tilt-max="5" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.1">
-                    <div class="icon-box" style="color: var(--accent); border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.1);">💎</div>
-                    <h3>Beyond Average</h3>
-                    <p>Don't settle for the average of the internet. Access the curated peak of human expertise and context.</p>
-                </div>
             </div>
         </div>
     </section>
 
-    <!-- Value Proposition -->
-    <section id="how-it-works" class="features">
+    <!-- THE CORE / CTA -->
+    <section class="core-section">
         <div class="container">
-            <div class="section-header">
-                <span class="section-subtitle">The Ecosystem</span>
-                <h2 class="section-title">How We Grow Together</h2>
-            </div>
-
-            <div class="grid">
-                <!-- Step 1 -->
-                <div class="card" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.2">
-                    <div class="icon-box">✍️</div>
-                    <h3>Share Knowledge</h3>
-                    <p>Write detailed articles and validate information within your domain of expertise. Your specific knowledge becomes part of the neural fabric.</p>
-                </div>
-
-                <!-- Step 2 -->
-                <div class="card" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.2">
-                    <div class="icon-box">🔗</div>
-                    <h3>Connect Context</h3>
-                    <p>Collective AI links your contributions with thousands of others, finding patterns and reasoning that a single model misses.</p>
-                </div>
-
-                <!-- Step 3 -->
-                <div class="card" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.2">
-                    <div class="icon-box">💡</div>
-                    <h3>Solve Problems</h3>
-                    <p>Users ask questions, and the AI synthesizes answers grounded in human verification. The community grows, the intelligence deepens.</p>
-                </div>
+            <div class="core-box">
+                <h2 class="font-display">The Neural Fabric Awaits</h2>
+                <p>An intelligence that evolves in real-time. Transparent, verifiable, and endlessly scalable. Become a node in the network.</p>
+                <a href="frontend/app.html" class="btn-primary">Access Dashboard</a>
             </div>
         </div>
     </section>
 
-    <!-- Motto Section -->
-    <section class="motto">
-        <div class="container">
-            <p style="color: var(--accent); margin-bottom: 2rem; font-weight: 600; letter-spacing: 0.1em;">OUR PHILOSOPHY</p>
-            <div class="motto-text-container">
-                <h2 class="motto-text">"Growing stronger as <br> the community grows."</h2>
-                <div class="motto-line"></div>
-            </div>
-            
-            <!-- ADDED: Descriptive text for clarity -->
-            <p class="motto-desc">
-                Unlike static models trained in isolation, Collective AI evolves in real-time. 
-                Every article you write, every insight you share, and every question you answer 
-                weaves a new thread into the neural fabric—creating an intelligence that is 
-                transparent, verifiable, and infinitely scalable.
-            </p>
-
-            <div class="motto-btn-wrapper">
-                <a href="frontend\app.html" class="btn btn-primary">Contribute Now</a>
-            </div>
-        </div>
-    </section>
-
+    <!-- FOOTER -->
     <footer>
         <div class="container">
-            <p>&copy; 2026 Collective AI. All rights reserved.</p>
+            <div class="logo">
+                <img src="frontend/images/Logo.png" alt="C">
+                <span>Collective AI</span>
+            </div>
+            <p>&copy; 2026 Collective AI Core. All systems operational.</p>
         </div>
     </footer>
 
     <!-- Script for Security -->
     <script src="frontend/security.js"></script>
 
-    <!-- Script for Canvas & GSAP Animations -->
+    <!-- CORE ANIMATION LOGIC -->
     <script>
-        // --- 0. PRELOADER & MOBILE MENU LOGIC ---
-        
+        // 1. Initialize Lenis Smooth Scrolling
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            direction: 'vertical',
+            gestureDirection: 'vertical',
+            smooth: true,
+            mouseMultiplier: 1,
+            smoothTouch: false,
+            touchMultiplier: 2,
+        });
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+
+        // Sync Lenis with GSAP ScrollTrigger
+        gsap.registerPlugin(ScrollTrigger);
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time)=>{ lenis.raf(time * 1000) });
+        gsap.ticker.lagSmoothing(0);
+
+        // 2. Preloader Animation
         window.addEventListener("load", () => {
-            const preloader = document.getElementById('preloader');
-            const body = document.querySelector('body');
+            const tl = gsap.timeline();
+            tl.to("#progress-bar", { width: "100%", duration: 1.5, ease: "power3.inOut" })
+              .to("#preloader", { yPercent: -100, duration: 0.8, ease: "power4.inOut" })
+              .set("body", { visibility: "visible" })
+              .call(initCinematicGSAP); // Start main animations after load
+        });
+
+        // 3. Main GSAP Timeline Integrations
+        function initCinematicGSAP() {
             
-            // Artificial delay to show the "Connecting" animation
-            setTimeout(() => {
-                gsap.to(preloader, {
-                    opacity: 0,
-                    duration: 0.8,
-                    onComplete: () => {
-                        preloader.style.display = "none";
-                        // Reveal Body content
-                        gsap.set(body, { visibility: "visible" });
-                        initAnimations(); // Start main animations
-                    }
-                });
-            }, 2000);
-        });
+            // --- Hero Entrance ---
+            gsap.from(".hero-label", { y: 20, opacity: 0, duration: 1, delay: 0.2 });
+            gsap.from(".title-line", { y: 100, opacity: 0, duration: 1.2, stagger: 0.1, ease: "power4.out", delay: 0.4 });
+            gsap.from(".hero-desc, .hero-content .btn-primary", { y: 20, opacity: 0, duration: 1, stagger: 0.2, delay: 0.8 });
 
-        // Mobile Menu Toggle
-        const menuToggle = document.getElementById('mobile-menu');
-        const navLinks = document.getElementById('nav-links');
-        
-        // Inject mobile buttons if on small screen
-        const mobileAuth = document.querySelector('.mobile-auth');
-        const desktopActions = document.querySelector('.nav-actions');
-
-        menuToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-            if(navLinks.classList.contains('active')) {
-                menuToggle.textContent = '✕';
-                // Clone buttons to mobile menu if not there
-                if(window.innerWidth <= 768 && mobileAuth.children.length === 0) {
-                     mobileAuth.style.display = "flex";
-                     mobileAuth.innerHTML = desktopActions.innerHTML;
-                }
-            } else {
-                menuToggle.textContent = '≡';
-            }
-        });
-
-        // --- 1. VANILLA CANVAS PARTICLE SYSTEM (Optimized) ---
-        const canvas = document.getElementById('network-canvas');
-        const ctx = canvas.getContext('2d');
-        let particlesArray;
-
-        // Fix canvas size
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-
-        let mouse = { x: null, y: null, radius: 150 };
-
-        window.addEventListener('mousemove', function(event) {
-            mouse.x = event.x;
-            mouse.y = event.y;
-        });
-
-        class Particle {
-            constructor(x, y, directionX, directionY, size) {
-                this.x = x;
-                this.y = y;
-                this.directionX = directionX;
-                this.directionY = directionY;
-                this.size = size;
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-                ctx.fillStyle = '#6366f1';
-                ctx.fill();
-            }
-            update() {
-                if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
-                if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
-
-                // Mouse Repulsion/Attraction Physics
-                let dx = mouse.x - this.x;
-                let dy = mouse.y - this.y;
-                let distance = Math.sqrt(dx*dx + dy*dy);
-                
-                if (distance < mouse.radius + this.size) {
-                    if (mouse.x < this.x && this.x < canvas.width - this.size * 10) this.x += 2;
-                    if (mouse.x > this.x && this.x > this.size * 10) this.x -= 2;
-                    if (mouse.y < this.y && this.y < canvas.height - this.size * 10) this.y += 2;
-                    if (mouse.y > this.y && this.y > this.size * 10) this.y -= 2;
-                }
-                this.x += this.directionX;
-                this.y += this.directionY;
-                this.draw();
-            }
-        }
-
-        function initParticles() {
-            particlesArray = [];
-            // Optimize particle count for mobile
-            let divisor = window.innerWidth < 768 ? 15000 : 10000;
-            let numberOfParticles = (canvas.height * canvas.width) / divisor; 
-            
-            for (let i = 0; i < numberOfParticles; i++) {
-                let size = (Math.random() * 2) + 1;
-                let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
-                let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
-                let directionX = (Math.random() * 0.4) - 0.2;
-                let directionY = (Math.random() * 0.4) - 0.2;
-                particlesArray.push(new Particle(x, y, directionX, directionY, size));
-            }
-        }
-
-        function connectParticles() {
-            let opacityValue = 1;
-            for (let a = 0; a < particlesArray.length; a++) {
-                for (let b = a; b < particlesArray.length; b++) {
-                    let distance = ((particlesArray[a].x - particlesArray[b].x) ** 2) + 
-                                   ((particlesArray[a].y - particlesArray[b].y) ** 2);
-                    if (distance < (canvas.width/7) * (canvas.height/7)) {
-                        opacityValue = 1 - (distance / 20000);
-                        ctx.strokeStyle = 'rgba(99, 102, 241,' + opacityValue + ')';
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-        }
-
-        function animateCanvas() {
-            requestAnimationFrame(animateCanvas);
-            ctx.clearRect(0, 0, innerWidth, innerHeight);
-            for (let i = 0; i < particlesArray.length; i++) {
-                particlesArray[i].update();
-            }
-            connectParticles();
-        }
-
-        window.addEventListener('resize', function() {
-            resizeCanvas();
-            initParticles();
-        });
-
-        initParticles();
-        animateCanvas();
-
-
-        // --- 2. GSAP "BILLION DOLLAR" ANIMATIONS ---
-        
-        function initAnimations() {
-            gsap.registerPlugin(ScrollTrigger);
-
-            // A. Initial Reveals
-            gsap.to("#network-canvas", { opacity: 1, duration: 2, ease: "power2.inOut" });
-
-            // B. Hero Sequence (Cinematic Text Reveal)
-            const heroTl = gsap.timeline({ defaults: { ease: "power4.out" } });
-
-            heroTl
-                // Nav Fade Down
-                .from(".navbar", { 
-                    y: -100, 
-                    opacity: 0, 
-                    duration: 1.2 
-                })
-                // Reveal Title Lines (clip-path effect)
-                .from(".hero h1 .reveal-container", {
-                    y: 120,
-                    stagger: 0.15,
-                    duration: 1.8,
-                    skewY: 5
-                }, "-=0.8") 
-                // Description Fade Up
-                .from(".hero p", {
-                    y: 40,
-                    opacity: 0,
-                    duration: 1.2
-                }, "-=1.2")
-                // Buttons Pop In
-                .from(".hero-btns .btn", {
-                    y: 20,
-                    opacity: 0,
-                    scale: 0.9,
-                    stagger: 0.1,
-                    duration: 1,
-                    ease: "elastic.out(1, 0.5)"
-                }, "-=1.0");
-
-            // C. Scroll Animations for Cards (Applies to both Pressure Points and How It Works)
-            gsap.utils.toArray(".card").forEach((card, i) => {
-                gsap.to(card, {
-                    scrollTrigger: {
-                        trigger: card,
-                        start: "top 90%", // Trigger slightly earlier
-                        toggleActions: "play none none reverse"
-                    },
-                    opacity: 1,
-                    y: 0,
-                    duration: 1,
-                    ease: "power3.out",
-                    delay: (i % 3) * 0.15 // Stagger based on grid column
-                });
+            // --- Hero Scroll Scrub (Zoom effect on scroll) ---
+            gsap.to(".hero-content", {
+                scrollTrigger: { trigger: ".hero-section", start: "top top", end: "bottom top", scrub: true },
+                y: 200, scale: 0.9, opacity: 0, ease: "none"
+            });
+            gsap.to("#hero-bg", {
+                scrollTrigger: { trigger: ".hero-section", start: "top top", end: "bottom top", scrub: true },
+                scale: 1.5, opacity: 0, ease: "none"
             });
 
-            // D. Section Headers (Applies to both headers)
-            gsap.utils.toArray(".section-header").forEach(header => {
-                gsap.from(header.querySelectorAll(".section-subtitle, .section-title"), {
-                    scrollTrigger: {
-                        trigger: header,
-                        start: "top 80%"
-                    },
-                    y: 50,
-                    opacity: 0,
-                    stagger: 0.2,
-                    duration: 1.2,
-                    ease: "power3.out"
-                });
-            });
-
-            // E. Motto Section Fix (Bold, Clean, Sharp - No Blur)
-            const mottoTl = gsap.timeline({
-                scrollTrigger: {
-                    trigger: ".motto",
-                    start: "top 75%"
-                }
-            });
-
-            mottoTl
-                .to(".motto-text", {
-                    opacity: 1, 
-                    scale: 1, 
-                    duration: 1.5,
-                    ease: "power2.out"
-                })
-                .from(".motto-text", {
-                    scale: 1.1,
-                    y: 20, /* Simple Slide Up */
-                    duration: 1.5
-                }, "<") 
-                .to(".motto-line", {
-                    width: "150px", 
-                    duration: 1,
-                    ease: "expo.out"
-                }, "-=1")
-                /* ADDED: Description reveal */
-                .to(".motto-desc", {
-                    opacity: 1,
-                    y: 0,
-                    duration: 1,
-                    ease: "power2.out"
-                }, "-=0.5")
-                .to(".motto-btn-wrapper", {
-                    y: 0,
-                    opacity: 1,
-                    duration: 1
-                }, "-=0.5");
-
-            // G. Navbar Glass Effect
+            // --- Navbar Glass Effect ---
             ScrollTrigger.create({
-                start: "top -50",
-                end: 99999,
-                toggleClass: { className: "scrolled", targets: ".navbar" }
+                start: "top -50", end: 99999, toggleClass: { className: "scrolled", targets: ".navbar" }
             });
-            
-            // H. Initialize Tilt for Cards
-            VanillaTilt.init(document.querySelectorAll(".card"), {
-                max: 10,
-                speed: 400,
-                glare: true,
-                "max-glare": 0.2,
+
+            // --- THE SHOWSTOPPER: PINNED STORY SEQUENCE ---
+            // Explicitly defining initial states prevents mid-scroll glitches
+            gsap.set(".step-text-1", { opacity: 1, y: 0 });
+            gsap.set(".step-text-2", { opacity: 0, y: 50 });
+            gsap.set(".step-text-3", { opacity: 0, y: 50 });
+            gsap.set(".step-img-1", { opacity: 1, scale: 1 });
+            gsap.set(".step-img-2", { opacity: 0, scale: 1.1 });
+            gsap.set(".step-img-3", { opacity: 0, scale: 1.1 });
+
+            const storyTl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: "#story-trigger",
+                    start: "top top",
+                    end: "bottom bottom", // Ties animation progress to the 400vh scroll area
+                    scrub: 1, // Smooth scrubbing
+                    pin: "#story-pin", // Pins the visual container securely
+                    anticipatePin: 1
+                }
+            });
+
+            // Transition 1 to 2
+            storyTl.to(".step-text-1", { opacity: 0, y: -50, duration: 1 })
+                   .to(".step-img-1", { opacity: 0, duration: 1 }, "<")
+                   .to(".step-text-2", { opacity: 1, y: 0, duration: 1 }, "<0.2")
+                   .to(".step-img-2", { opacity: 1, scale: 1, duration: 1 }, "<")
+                   .to({}, {duration: 0.5}) // Hold state
+                   
+            // Transition 2 to 3
+                   .to(".step-text-2", { opacity: 0, y: -50, duration: 1 })
+                   .to(".step-img-2", { opacity: 0, duration: 1 }, "<")
+                   .to(".step-text-3", { opacity: 1, y: 0, duration: 1 }, "<0.2")
+                   .to(".step-img-3", { opacity: 1, scale: 1, duration: 1 }, "<")
+                   .to({}, {duration: 0.5}); // Final hold
+
+            // --- The Core CTA Box ---
+            gsap.from(".core-box", {
+                scrollTrigger: { trigger: ".core-section", start: "top 70%" },
+                y: 100, opacity: 0, duration: 1.5, ease: "power4.out"
             });
         }
     </script>
 </body>
-               
+</html>
+
+
