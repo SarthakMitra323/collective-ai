@@ -18,9 +18,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <!-- Lenis Smooth Scroll (Crucial for cinematic feel) -->
-    <script src="https://unpkg.com/@studio-freight/lenis@1.0.39/dist/lenis.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.3.17/dist/lenis.min.js"></script>
     <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.2"></script>
+    <noscript><style>body { visibility: visible !important; }</style></noscript>
 
     <style>
         /* --- CORE STYLES & RESET --- */
@@ -56,6 +57,7 @@
 
         .gradient-text {
             background: linear-gradient(135deg, #fff 0%, #a855f7 100%);
+            background-clip: texxt;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;
         }
 
@@ -79,7 +81,7 @@
             padding: 1rem 0; border-bottom: 1px solid var(--glass-border);
         }
         .nav-inner { display: flex; justify-content: space-between; align-items: center; }
-        .logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; font-size: 1.2rem; font-family: 'Plus Jakarta Sans'; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; font-size: 1.2rem; font-family: 'Plus Jakarta Sans'; z-index: 101; position: relative; }
         .logo img { height: 24px; border-radius: 4px; }
         
         .nav-links { display: flex; gap: 2rem; }
@@ -93,7 +95,7 @@
         }
         .nav-btn:hover { background: #fff; color: #000; }
         
-        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; }
+        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; z-index: 101; position: relative; }
 
         /* --- CINEMATIC HERO --- */
         .hero-section {
@@ -106,21 +108,22 @@
             transform-origin: center center;
         }
         .hero-content {
-            position: relative; z-index: 1; text-align: center; max-width: 1000px; padding-top: 5vh;
+            position: relative; z-index: 1; text-align: center; max-width: 1000px; padding: 0 1rem;
         }
         .hero-label {
             display: inline-block; padding: 0.5rem 1rem; border-radius: 50px;
             border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.05);
             color: #d8b4fe; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem; /* Tightened */
         }
         .hero-title {
-            font-size: clamp(3.5rem, 8vw, 7rem); font-weight: 800; line-height: 1.05;
-            letter-spacing: -0.04em; margin-bottom: 1.5rem;
+            font-size: clamp(2.5rem, 5.5vw, 5rem); /* Scaled down perfectly for laptops */
+            font-weight: 800; line-height: 1.05;
+            letter-spacing: -0.04em; margin-bottom: 1rem; /* Tightened */
         }
         .hero-desc {
-            font-size: clamp(1.1rem, 2vw, 1.4rem); color: var(--text-muted);
-            max-width: 600px; margin: 0 auto 3rem auto; line-height: 1.6;
+            font-size: clamp(1rem, 1.5vw, 1.25rem); color: var(--text-muted);
+            max-width: 600px; margin: 0 auto 2rem auto; line-height: 1.6; /* Tightened */
         }
         .btn-primary {
             display: inline-block; background: #fff; color: #000;
@@ -129,7 +132,7 @@
         }
         .btn-primary:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(255,255,255,0.2); }
 
-        /* --- HORIZONTAL MARQUEE (CSS Animated for smoothness and readability) --- */
+        /* --- HORIZONTAL MARQUEE (CSS Animated) --- */
         .marquee-section { 
             padding: 4rem 0; overflow: hidden; white-space: nowrap; 
             border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); 
@@ -154,7 +157,7 @@
         .story-scroll-area { height: 400vh; position: relative; } 
         
         .story-pin-wrap {
-            position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; align-items: center; overflow: hidden;
+            height: 100vh; height: 100dvh; display: flex; align-items: center; overflow: hidden;
         }
 
         .story-grid {
@@ -162,7 +165,7 @@
             height: 80vh; max-height: 800px; max-width: 1400px; margin: 0 auto; padding: 0 2rem;
         }
 
-        /* Left side: Text (High z-index to stay above images) */
+        /* Left side: Text */
         .story-text-col { 
             position: relative; display: flex; flex-direction: column; justify-content: center; 
             height: 100%; z-index: 10; 
@@ -184,7 +187,6 @@
             position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
             opacity: 0; transform: scale(1.1); filter: brightness(0.6) contrast(1.1);
         }
-        /* Fade edge to blend with background and darken behind text */
         .story-img::after {
             content: ''; position: absolute; inset: 0; 
             background: linear-gradient(to right, var(--bg-deep) 0%, rgba(3,3,5,0.6) 40%, transparent 100%);
@@ -222,14 +224,24 @@
             .story-text-block p { font-size: 1rem; }
             
             .story-img-col { height: 100%; min-height: 0; border-radius: 16px; }
-            /* Stronger fade top edge on mobile to ensure text readability */
             .story-img::after { background: linear-gradient(to top, transparent 40%, rgba(3,3,5,0.8) 75%, var(--bg-deep) 100%); }
         }
 
         @media (max-width: 768px) {
-            .nav-links, .nav-actions { display: none; }
+            /* Mobile Navigation Overlay */
+            .nav-links { 
+                position: fixed; inset: 0; background: rgba(3, 3, 5, 0.98); 
+                backdrop-filter: blur(10px); z-index: 100;
+                display: flex; flex-direction: column; justify-content: center; align-items: center; 
+                gap: 2.5rem; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            }
+            .nav-links.active { opacity: 1; pointer-events: auto; }
+            .nav-links .nav-item { font-size: 1.5rem; font-weight: 600; }
+            
+            .nav-actions { display: none; }
             .menu-toggle { display: block; color: #fff; }
-            .hero-title { font-size: 3rem; }
+            
+            .hero-title { font-size: clamp(2.5rem, 8vw, 3.5rem); }
             .hero-desc { font-size: 1rem; }
             .core-box { padding: 3rem 1.5rem; border-radius: 20px; }
             .marquee-section { padding: 2.5rem 0; }
@@ -240,7 +252,7 @@
 
     <!-- PRELOADER -->
     <div id="preloader">
-        <div class="preloader-brand">COLLECTIVE</div>
+        <div class="preloader-brand">COLLECTIVE AI</div>
         <div class="preloader-progress" id="progress-bar"></div>
     </div>
 
@@ -251,16 +263,16 @@
                 <img src="frontend/images/Logo.png" alt="C">
                 <span>Collective AI</span>
             </a>
-            <div class="nav-links">
-                <a href="#vision" class="nav-item">Vision</a>
-                <a href="#engine" class="nav-item">The Engine</a>
-                <!-- Updated Link to Auth Page -->
-                <a href="frontend/app.html" class="nav-item">Contribute</a>
+            <div class="nav-links" id="nav-links">
+                <a href="#vision" class="nav-item mobile-nav-item">Vision</a>
+                <a href="#engine" class="nav-item mobile-nav-item">The Engine</a>
+                <a href="frontend/app.html" class="nav-item mobile-nav-item">Contribute</a>
             </div>
             <div class="nav-actions">
                 <a href="frontend/app.html" class="nav-btn">Launch Core</a>
             </div>
-            <div class="menu-toggle"><i class="ph ph-list"></i></div>
+            <!-- Hamburger Icon -->
+            <div class="menu-toggle" id="menu-toggle"><i class="ph ph-list"></i></div>
         </div>
     </nav>
 
@@ -278,9 +290,8 @@
         </div>
     </section>
 
-    <!-- MASSIVE SCROLLING TEXT (CSS Animated) -->
+    <!-- MASSIVE SCROLLING TEXT -->
     <section class="marquee-section" id="vision">
-        <!-- Duplicate content blocks for seamless infinite scroll -->
         <div class="marquee-content">
             <h2 class="marquee-text">
                 Stop trusting <span>statistical guesses</span> &nbsp;•&nbsp; Demand <span>verified wisdom</span> &nbsp;•&nbsp; 
@@ -298,41 +309,36 @@
         </div>
     </section>
 
-    <!-- PINNED STORY SEQUENCE (THE SHOWSTOPPER) -->
+    <!-- PINNED STORY SEQUENCE -->
     <section class="story-container" id="engine">
         <div class="story-scroll-area" id="story-trigger">
             <div class="story-pin-wrap" id="story-pin">
                 
                 <div class="story-grid">
-                    <!-- Text Side (Z-index strictly higher to prevent overlap glitches) -->
+                    <!-- Text Side -->
                     <div class="story-text-col">
-                        
                         <!-- Step 1 -->
                         <div class="story-text-block step-text-1">
                             <div class="story-step-num">01 // INGESTION</div>
                             <h2 class="font-display">Contribute<br>Expertise.</h2>
                             <p>You provide the raw material. Write detailed articles, solve complex problems, and share your unique domain knowledge directly into the Collective Database.</p>
                         </div>
-
                         <!-- Step 2 -->
                         <div class="story-text-block step-text-2">
                             <div class="story-step-num">02 // VECTORIZATION</div>
                             <h2 class="font-display">Neural<br>Mapping.</h2>
                             <p>Our Retrieval-Augmented Generation (RAG) system instantly converts your text into mathematical vectors, finding hidden semantic connections between thousands of minds.</p>
                         </div>
-
                         <!-- Step 3 -->
                         <div class="story-text-block step-text-3">
                             <div class="story-step-num">03 // SYNTHESIS</div>
                             <h2 class="font-display">Collective<br>Recall.</h2>
                             <p>When asked a question, the AI doesn't hallucinate. It queries the vector space, retrieving verified human contributions to construct a perfectly synthesized answer.</p>
                         </div>
-
                     </div>
 
                     <!-- Image Side -->
                     <div class="story-img-col">
-                        <!-- Premium Dark Abstract Textures -->
                         <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-1" alt="Abstract Pattern">
                         <img src="https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-2" alt="Neural Network Concept">
                         <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-3" alt="Data Flow Concept">
@@ -368,9 +374,42 @@
     <!-- Script for Security -->
     <script src="frontend/security.js"></script>
 
-    <!-- CORE ANIMATION LOGIC -->
+    <!-- CORE ANIMATION & UI LOGIC -->
     <script>
-        // 1. Initialize Lenis Smooth Scrolling
+        // --- 0. Mobile Menu Logic ---
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinksContainer = document.getElementById('nav-links');
+        const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
+        
+        // Unhide the "Login" link inside the mobile menu via JS 
+        // (so it stays hidden on desktop)
+        if (window.innerWidth <= 768) {
+            mobileNavItems[mobileNavItems.length - 1].style.display = 'block';
+        }
+
+        menuToggle.addEventListener('click', () => {
+            const isActive = navLinksContainer.classList.toggle('active');
+            const icon = menuToggle.querySelector('i');
+            
+            if(isActive) {
+                icon.classList.replace('ph-list', 'ph-x');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling
+            } else {
+                icon.classList.replace('ph-x', 'ph-list');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Close menu when clicking a link
+        mobileNavItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navLinksContainer.classList.remove('active');
+                menuToggle.querySelector('i').classList.replace('ph-x', 'ph-list');
+                document.body.style.overflow = '';
+            });
+        });
+
+        // --- 1. Initialize Lenis Smooth Scrolling ---
         const lenis = new Lenis({
             duration: 1.2,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -394,40 +433,39 @@
         gsap.ticker.add((time)=>{ lenis.raf(time * 1000) });
         gsap.ticker.lagSmoothing(0);
 
-        // 2. Preloader Animation
+        // --- 2. Preloader Animation ---
         window.addEventListener("load", () => {
             const tl = gsap.timeline();
             tl.to("#progress-bar", { width: "100%", duration: 1.5, ease: "power3.inOut" })
               .to("#preloader", { yPercent: -100, duration: 0.8, ease: "power4.inOut" })
               .set("body", { visibility: "visible" })
-              .call(initCinematicGSAP); // Start main animations after load
+              .call(initCinematicGSAP); // Start main animations
         });
 
-        // 3. Main GSAP Timeline Integrations
+        // --- 3. Main GSAP Timeline Integrations ---
         function initCinematicGSAP() {
             
-            // --- Hero Entrance ---
+            // Hero Entrance
             gsap.from(".hero-label", { y: 20, opacity: 0, duration: 1, delay: 0.2 });
             gsap.from(".title-line", { y: 100, opacity: 0, duration: 1.2, stagger: 0.1, ease: "power4.out", delay: 0.4 });
             gsap.from(".hero-desc, .hero-content .btn-primary", { y: 20, opacity: 0, duration: 1, stagger: 0.2, delay: 0.8 });
 
-            // --- Hero Scroll Scrub (Zoom effect on scroll) ---
+            // Hero Scroll Scrub
             gsap.to(".hero-content", {
                 scrollTrigger: { trigger: ".hero-section", start: "top top", end: "bottom top", scrub: true },
-                y: 200, scale: 0.9, opacity: 0, ease: "none"
+                y: 150, scale: 0.95, opacity: 0, ease: "none"
             });
             gsap.to("#hero-bg", {
                 scrollTrigger: { trigger: ".hero-section", start: "top top", end: "bottom top", scrub: true },
                 scale: 1.5, opacity: 0, ease: "none"
             });
 
-            // --- Navbar Glass Effect ---
+            // Navbar Glass Effect
             ScrollTrigger.create({
                 start: "top -50", end: 99999, toggleClass: { className: "scrolled", targets: ".navbar" }
             });
 
-            // --- THE SHOWSTOPPER: PINNED STORY SEQUENCE ---
-            // Explicitly defining initial states prevents mid-scroll glitches
+            // --- PINNED STORY SEQUENCE ---
             gsap.set(".step-text-1", { opacity: 1, y: 0 });
             gsap.set(".step-text-2", { opacity: 0, y: 50 });
             gsap.set(".step-text-3", { opacity: 0, y: 50 });
@@ -439,9 +477,9 @@
                 scrollTrigger: {
                     trigger: "#story-trigger",
                     start: "top top",
-                    end: "bottom bottom", // Ties animation progress to the 400vh scroll area
-                    scrub: 1, // Smooth scrubbing
-                    pin: "#story-pin", // Pins the visual container securely
+                    end: "bottom bottom", 
+                    scrub: 1, 
+                    pin: "#story-pin", 
                     anticipatePin: 1
                 }
             });
@@ -451,16 +489,16 @@
                    .to(".step-img-1", { opacity: 0, duration: 1 }, "<")
                    .to(".step-text-2", { opacity: 1, y: 0, duration: 1 }, "<0.2")
                    .to(".step-img-2", { opacity: 1, scale: 1, duration: 1 }, "<")
-                   .to({}, {duration: 0.5}) // Hold state
+                   .to({}, {duration: 0.5}) 
                    
             // Transition 2 to 3
                    .to(".step-text-2", { opacity: 0, y: -50, duration: 1 })
                    .to(".step-img-2", { opacity: 0, duration: 1 }, "<")
                    .to(".step-text-3", { opacity: 1, y: 0, duration: 1 }, "<0.2")
                    .to(".step-img-3", { opacity: 1, scale: 1, duration: 1 }, "<")
-                   .to({}, {duration: 0.5}); // Final hold
+                   .to({}, {duration: 0.5});
 
-            // --- The Core CTA Box ---
+            // Core CTA Box
             gsap.from(".core-box", {
                 scrollTrigger: { trigger: ".core-section", start: "top 70%" },
                 y: 100, opacity: 0, duration: 1.5, ease: "power4.out"
@@ -469,5 +507,6 @@
     </script>
 </body>
 </html>
+
 
 
