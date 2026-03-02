@@ -91,9 +91,12 @@ class CollectiveModel:
             print(f"❌ Failed to load model: {e}")
             self.generator = None
 
-    def generate_response(self, user_input, context_docs=[]):
+    def generate_response(self, user_input, context_docs=None):
         if not self.generator:
             return "Error: Neural Core Offline."
+
+        if context_docs is None:
+            context_docs = []
 
         # RAG Prompt Construction (if context exists from rag.py)
         system_prompt = "You are Collective AI, a wise assistant. Use the provided Context from the community to answer the user."
