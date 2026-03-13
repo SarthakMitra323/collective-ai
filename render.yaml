@@ -26,16 +26,3 @@ services:
       targetMemoryPercent: 60
       targetCPUPercent: 70
     pullRequestPreviewsEnabled: true
-
-  - type: web
-    name: collective-ai-frontend
-    runtime: static
-    buildCommand: echo "Static assets ready"
-    publishPath: ./frontend
-    routes:
-      - path: /*
-        matchType: catch-all
-        destination: /index.html
-    domains:
-      - key: RENDER_EXTERNAL_HOSTNAME
-    autoDeploy: true
