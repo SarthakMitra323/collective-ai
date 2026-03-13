@@ -207,6 +207,29 @@
         .core-box h2 { font-size: clamp(2rem, 5vw, 4rem); margin-bottom: 1.5rem; }
         .core-box p { color: var(--text-muted); font-size: 1.15rem; max-width: 600px; margin: 0 auto 3rem auto; }
 
+        /* --- CREATOR SECTION --- */
+        .creator-section { padding: 6rem 0 8rem; }
+        .creator-card {
+            max-width: 1000px; margin: 0 auto;
+            background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);
+            border-radius: 28px; padding: 3rem 2.25rem;
+            box-shadow: 0 0 80px rgba(99, 102, 241, 0.08);
+        }
+        .creator-label {
+            display: inline-block; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;
+            color: #d8b4fe; border: 1px solid rgba(168,85,247,0.35); border-radius: 999px;
+            padding: 0.45rem 0.95rem; margin-bottom: 1.25rem;
+        }
+        .creator-card h2 { font-size: clamp(1.8rem, 4vw, 3rem); margin-bottom: 1rem; }
+        .creator-card p { color: var(--text-muted); font-size: 1.05rem; line-height: 1.75; margin-bottom: 1rem; }
+        .creator-skills { margin: 1rem 0 0.5rem 1.2rem; color: var(--text-main); line-height: 1.8; }
+        .creator-links { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.5rem; }
+        .creator-link {
+            padding: 0.55rem 1rem; border-radius: 999px; font-size: 0.9rem; font-weight: 600;
+            border: 1px solid var(--glass-border); background: rgba(255,255,255,0.04); transition: all 0.3s;
+        }
+        .creator-link:hover { background: #fff; color: #000; }
+
         /* --- FOOTER --- */
         footer { padding: 3rem 2rem; border-top: 1px solid var(--glass-border); text-align: center; }
         footer .logo { justify-content: center; margin-bottom: 1rem; opacity: 0.5; }
@@ -244,6 +267,7 @@
             .hero-title { font-size: clamp(2.5rem, 8vw, 3.5rem); }
             .hero-desc { font-size: 1rem; }
             .core-box { padding: 3rem 1.5rem; border-radius: 20px; }
+            .creator-card { padding: 2.25rem 1.25rem; border-radius: 20px; }
             .marquee-section { padding: 2.5rem 0; }
         }
     </style>
@@ -356,6 +380,27 @@
                 <h2 class="font-display">The Neural Fabric Awaits</h2>
                 <p>An intelligence that evolves in real-time. Transparent, verifiable, and endlessly scalable. Become a node in the network.</p>
                 <a href="frontend/app.html" class="btn-primary">Access Dashboard</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CREATOR SECTION -->
+    <section class="creator-section" id="creator">
+        <div class="container">
+            <div class="creator-card">
+                <span class="creator-label">Creator Spotlight</span>
+                <h2 class="font-display">Meet Sarthak Mitra</h2>
+                <p>Sarthak Mitra is a young creator with a keen interest in coding and building meaningful digital experiences. He has already created multiple websites and keeps improving each project with new ideas.</p>
+                <p>His vision is to solve real-world problems through technology. Sarthak is currently highly skilled in HTML, CSS, JavaScript, and Python, and is also learning C and Java to integrate even more capabilities into his work.</p>
+                <p>He continues to grow as a dedicated creator focused on impact and continuous learning.</p>
+                <ul class="creator-skills">
+                    <li>Current expertise: HTML, CSS, JavaScript, Python</li>
+                    <li>Currently learning: C, Java</li>
+                </ul>
+                <div class="creator-links">
+                    <a href="https://mitra-codiga.vercel.app/" target="_blank" rel="noopener noreferrer" class="creator-link">mitra-codiga</a>
+                    <a href="https://music-flow-roulette.vercel.app/" target="_blank" rel="noopener noreferrer" class="creator-link">MusicFlow</a>
+                </div>
             </div>
         </div>
     </section>
