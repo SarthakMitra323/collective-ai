@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/Logo-favicon.png" alt="Collective AI Logo" width="72" height="72" />
+<img src="frontend/images/Logo-favicon.png" alt="Collective AI Logo" width="72" height="72" />
 
 # Collective AI
 
@@ -12,7 +12,7 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Deploy on Render](https://img.shields.io/badge/Backend-Render-46e3b7?logo=render&logoColor=white)](https://render.com/)
 
-[Live Demo](https://your-app.vercel.app) · [Report a Bug](https://github.com/your-username/collective-ai/issues) · [Request a Feature](https://github.com/your-username/collective-ai/issues)
+[Live Demo](https://collective-ai.vercel.app) · [Report a Bug](https://github.com/SarthakMitra323/collective-ai/issues) · [Request a Feature](https://github.com/SarthakMitra323/collective-ai/issues)
 
 </div>
 
@@ -104,7 +104,7 @@ collective-ai/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/collective-ai.git
+git clone https://github.com/SarthakMitra323/collective-ai.git
 cd collective-ai
 ```
 
@@ -124,12 +124,13 @@ pip install -r requirements.txt
 
 ```js
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "your-app.firebaseapp.com",
-  projectId: "your-app",
-  storageBucket: "your-app.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
+  authDomain: "collective-ai-auth.firebaseapp.com",
+  projectId: "collective-ai-auth",
+  storageBucket: "collective-ai-auth.firebasestorage.app",
+  messagingSenderId: "851370153534",
+  appId: "1:851370153534:web:484314623047fd110ca36f",
+  measurementId: "G-H1362YWCJB"
 };
 ```
 
