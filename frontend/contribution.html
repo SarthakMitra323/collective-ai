@@ -1,588 +1,636 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>Contribute | Collective AI</title>
-    <!-- Favicon -->
-    <link rel="icon" href="images/Logo-favicon.png" type="image/png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contribute Knowledge | Collective AI</title>
+<link rel="icon" href="images/Logo-favicon.png" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#09090b;--panel:#111113;--hover:#1a1a1f;--card:#1e1e24;
+  --border:rgba(255,255,255,.08);--bhi:rgba(255,255,255,.13);
+  --primary:#6366f1;--pdark:#4f46e5;--accent:#a78bfa;
+  --text:#f1f1f3;--sub:#a1a1aa;--muted:#6b6b75;--danger:#ef4444;
+  --success:#22c55e;--sw:260px
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;font-size:15px;overflow:hidden;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+textarea,input,select{font-family:inherit}
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+/* ── APP SHELL ── */
+.app{display:flex;height:100vh;overflow:hidden}
 
-    <!-- Libraries -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+/* ── SIDEBAR (identical to dashboard) ── */
+.sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;flex-shrink:0;overflow:hidden;z-index:60;width:var(--sw);transition:width .25s ease,border-color .25s ease}
+.sidebar.sb-off{width:0;border-color:transparent}
+.sidebar.sb-off .sb-inner{opacity:0;pointer-events:none}
+.sb-inner{width:var(--sw);min-width:var(--sw);height:100%;display:flex;flex-direction:column;transition:opacity .2s}
+@media(max-width:768px){
+  .sidebar{position:fixed!important;top:0;left:0;bottom:0;width:var(--sw)!important;border-color:var(--border)!important;transform:translateX(-100%);transition:transform .25s ease;z-index:200}
+  .sidebar.sb-off{width:var(--sw)!important;border-color:var(--border)!important;transform:translateX(-100%)}
+  .sidebar.sb-on{transform:translateX(0)!important}
+  .sb-inner{opacity:1!important;pointer-events:auto!important}
+  #btn-close{display:flex!important}
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);z-index:190}
+@media(max-width:768px){.overlay{display:block;opacity:0;pointer-events:none;transition:opacity .25s}.overlay.ov-on{opacity:1;pointer-events:auto}}
 
-    <style>
-        /* --- VARIABLES & RESET --- */
-        :root {
-            --bg-deep: #050507;
-            --bg-panel: #0a0a0f;
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --accent: #a855f7;
-            --text-main: #ffffff;
-            --text-muted: #94a3b8;
-            --border: rgba(255, 255, 255, 0.08);
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-hover: rgba(255, 255, 255, 0.08);
-            --success: #10b981;
-            --error: #ef4444;
-            --code-bg: #1e1e24;
-        }
+.sb-top{padding:12px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo-dot{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.logo-lbl{font-size:.87rem;font-weight:600;flex:1}
+#btn-close{display:none;width:28px;height:28px;border-radius:6px;align-items:center;justify-content:center;color:var(--muted);transition:color .15s,background .15s;flex-shrink:0}
+#btn-close:hover{color:var(--text);background:var(--hover)}
+.btn-new{margin:10px 10px 6px;padding:8px 14px;background:var(--primary);color:#fff;border-radius:8px;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:8px;transition:background .15s;flex-shrink:0;width:calc(100% - 20px)}
+.btn-new:hover{background:var(--pdark)}
+.sb-nav{padding:4px 10px 8px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.nav-a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;color:var(--sub);font-size:.82rem;font-weight:500;transition:color .15s,background .15s}
+.nav-a:hover{color:var(--text);background:var(--hover)}
+.nav-a.active{color:var(--accent);background:rgba(167,139,250,.09)}
+.sb-footer{padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0;position:relative}
+.umenu{position:absolute;bottom:calc(100% + 6px);left:10px;right:10px;background:var(--card);border:1px solid var(--bhi);border-radius:10px;padding:5px;display:none;flex-direction:column;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:300}
+.umenu.open{display:flex}
+.um-it{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;font-size:.81rem;color:var(--sub);cursor:pointer;transition:color .15s,background .15s}
+.um-it:hover{color:var(--text);background:var(--hover)}
+.um-it.red:hover{color:var(--danger);background:rgba(239,68,68,.09)}
+.um-sep{height:1px;background:var(--border);margin:3px 0}
+.ucard{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s}
+.ucard:hover{background:var(--hover)}
+.av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover}
+.u-info{flex:1;min-width:0}
+.u-name{font-size:.81rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.u-email{font-size:.70rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;height:100%;overflow:hidden;min-width:0}
 
-        body {
-            background-color: var(--bg-deep);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            height: 100vh;
-            height: 100dvh;
-            display: flex;
-            overflow: hidden;
-        }
+/* ── HEADER ── */
+.header{height:52px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--border);background:rgba(9,9,11,.88);backdrop-filter:blur(10px)}
+.btn-hbg{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--sub);flex-shrink:0;transition:color .15s,background .15s}
+.btn-hbg:hover{color:var(--text);background:var(--hover)}
+.h-title{flex:1;font-size:.85rem;font-weight:600;color:var(--sub)}
 
-        h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+/* ── CONTENT AREA ── */
+.content{flex:1;overflow-y:auto;padding:32px 24px 60px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--card);border-radius:4px}
 
-        /* --- SIDEBAR --- */
-        .sidebar {
-            width: 280px;
-            background: var(--bg-panel);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            transition: left 0.3s ease, transform 0.3s ease;
-            z-index: 50;
-            height: 100%;
-            flex-shrink: 0;
-        }
+.content-inner{max-width:680px;margin:0 auto}
 
-        .sidebar-header {
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            border-bottom: 1px solid var(--border);
-        }
+/* Page hero */
+.page-hero{margin-bottom:32px}
+.page-hero h1{font-size:1.4rem;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
+.page-hero p{font-size:.86rem;color:var(--sub);line-height:1.65;max-width:500px}
 
-        .logo-container { display: flex; align-items: center; gap: 0.75rem; }
-        .logo-img { height: 28px; width: auto; border-radius: 4px; }
-        .logo-text { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; }
+/* Stats bar */
+.stats-bar{display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:120px}
+.stat-val{font-size:1.3rem;font-weight:700;letter-spacing:-.03em;color:var(--text)}
+.stat-lbl{font-size:.72rem;color:var(--muted);margin-top:2px}
 
-        .close-sidebar-btn {
-            display: none; font-size: 1.25rem; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s;
-        }
-        .close-sidebar-btn:hover { color: var(--text-main); }
+/* Form card */
+.form-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:28px}
+.form-card h2{font-size:.95rem;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.form-card h2 svg{color:var(--accent)}
 
-        .sidebar-content {
-            flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;
-        }
+.field{margin-bottom:18px}
+.field label{display:block;font-size:.75rem;font-weight:600;color:var(--sub);letter-spacing:.03em;margin-bottom:6px}
+.field input,.field textarea,.field select{
+  width:100%;padding:11px 13px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:9px;color:var(--text);font-size:.85rem;outline:none;
+  transition:border-color .15s,box-shadow .15s
+}
+.field input:focus,.field textarea:focus,.field select:focus{
+  border-color:rgba(99,102,241,.5);
+  box-shadow:0 0 0 3px rgba(99,102,241,.08)
+}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted)}
+.field textarea{resize:vertical;min-height:120px;line-height:1.65}
+.field select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 256 256'%3E%3Cpath fill='%236b6b75' d='M213.66 101.66l-80 80a8 8 0 0 1-11.32 0l-80-80a8 8 0 0 1 11.32-11.32L128 164.69l74.34-74.35a8 8 0 0 1 11.32 11.32Z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
+.field-hint{font-size:.72rem;color:var(--muted);margin-top:5px}
+.char-count{font-size:.72rem;color:var(--muted);float:right}
+.char-count.warn{color:#f59e0b}
 
-        .btn-back-dashboard {
-            width: 100%; padding: 0.75rem;
-            background: var(--glass); color: var(--text-muted); border: 1px solid var(--border);
-            border-radius: 8px; font-weight: 600; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            transition: all 0.2s; margin-bottom: 1rem;
-        }
-        .btn-back-dashboard:hover { background: var(--glass-hover); color: var(--text-main); border-color: var(--text-muted); }
+/* Tags input */
+.tags-wrap{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:9px;cursor:text;min-height:44px;align-items:center;transition:border-color .15s,box-shadow .15s}
+.tags-wrap:focus-within{border-color:rgba(99,102,241,.5);box-shadow:0 0 0 3px rgba(99,102,241,.08)}
+.tag{display:flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25);border-radius:20px;font-size:.74rem;color:var(--accent)}
+.tag button{display:flex;align-items:center;color:var(--accent);opacity:.7;transition:opacity .15s}
+.tag button:hover{opacity:1}
+.tag-input{flex:1;min-width:80px;background:transparent;border:none;outline:none;color:var(--text);font-size:.84rem;padding:2px 4px}
+.tag-input::placeholder{color:var(--muted)}
 
-        .nav-item {
-            display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem;
-            color: var(--text-muted); text-decoration: none; border-radius: 8px;
-            transition: all 0.2s; cursor: pointer;
-        }
-        .nav-item:hover, .nav-item.active { background: var(--glass-hover); color: var(--text-main); }
-        .nav-item.active { color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+/* Quality guide */
+.quality-guide{background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:16px;margin-bottom:18px}
+.quality-guide h3{font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.quality-guide ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.quality-guide li{display:flex;align-items:flex-start;gap:8px;font-size:.78rem;color:var(--sub);line-height:1.5}
+.quality-guide li::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px}
 
-        /* --- MAIN AREA --- */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            background: var(--bg-deep);
-            height: 100%;
-            overflow-y: auto;
-        }
+/* Submit button */
+.btn-submit{
+  width:100%;padding:12px;
+  background:var(--primary);color:#fff;border:none;
+  border-radius:10px;font-size:.88rem;font-weight:700;
+  cursor:pointer;transition:background .15s,box-shadow .15s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  position:relative;overflow:hidden
+}
+.btn-submit::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 60%);pointer-events:none}
+.btn-submit:hover{background:var(--pdark);box-shadow:0 0 20px rgba(99,102,241,.4);transform:translateY(-1px)}
+.btn-submit:active{transform:translateY(0)}
+.btn-submit:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
+.btn-submit .spin{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn-submit.loading .btn-txt{display:none}
+.btn-submit.loading .spin{display:block}
 
-        .content-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(5, 5, 7, 0.8);
-            backdrop-filter: blur(10px);
-            position: sticky; top: 0; z-index: 10;
-        }
+/* My contributions list */
+.contrib-list{display:flex;flex-direction:column;gap:10px}
+.contrib-item{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;transition:border-color .15s}
+.contrib-item:hover{border-color:var(--bhi)}
+.ci-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.ci-cat{font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);padding:2px 8px;border-radius:20px;flex-shrink:0}
+.ci-date{font-size:.71rem;color:var(--muted);flex-shrink:0}
+.ci-content{font-size:.84rem;color:var(--sub);line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ci-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.ci-tag{font-size:.7rem;color:var(--muted);background:var(--card);border-radius:4px;padding:2px 7px}
+.ci-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.ci-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;font-size:.75rem;color:var(--muted);transition:color .15s,background .15s}
+.ci-btn:hover{color:var(--text);background:var(--hover)}
+.ci-btn.del:hover{color:var(--danger);background:rgba(239,68,68,.08)}
 
-        .header-title h2 { font-size: 1.5rem; margin-bottom: 0.25rem; }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; }
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state svg{margin-bottom:12px;opacity:.4}
+.empty-state p{font-size:.84rem;line-height:1.6}
 
-        /* --- EDITOR STYLES --- */
-        .editor-container {
-            padding: 2rem;
-            max-width: 900px;
-            margin: 0 auto;
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
+/* Toast */
+.toasts{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:400;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{padding:8px 18px;border-radius:20px;font-size:.77rem;animation:fi .18s ease-out}
+.toast.ok{background:#14532d;border:1px solid #16a34a;color:#86efac}
+.toast.err{background:#450a0a;border:1px solid var(--danger);color:#fca5a5}
+.toast.info{background:var(--card);border:1px solid var(--bhi);color:var(--sub)}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-        /* 1. Meta Data Section */
-        .meta-section {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            background: var(--bg-panel);
-            padding: 1.5rem;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-        }
+/* Tab switcher */
+.tabs{display:flex;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:24px;gap:2px}
+.tab-btn{flex:1;padding:8px;border-radius:7px;font-size:.82rem;font-weight:600;color:var(--muted);transition:color .15s,background .15s;cursor:pointer;background:none;border:none;font-family:inherit}
+.tab-btn.active{background:var(--panel);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
 
-        .title-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            font-family: 'Outfit', sans-serif;
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-main);
-            outline: none;
-        }
-        .title-input::placeholder { color: rgba(255,255,255,0.2); }
-
-        .meta-grid {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .input-group {
-            flex: 1;
-            min-width: 200px;
-            position: relative;
-        }
-
-        .meta-input {
-            width: 100%;
-            background: var(--glass);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            transition: border-color 0.2s;
-        }
-        .meta-input:focus { border-color: var(--primary); outline: none; }
-
-        .image-upload-label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: var(--glass);
-            border: 1px dashed var(--border);
-            border-radius: 8px;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .image-upload-label:hover { border-color: var(--primary); color: var(--text-main); background: var(--glass-hover); }
-
-        /* Image Preview Area */
-        #image-preview-container {
-            width: 100%;
-            height: 200px;
-            background: #000;
-            border-radius: 8px;
-            overflow: hidden;
-            display: none; /* Hidden by default */
-            margin-top: 0.5rem;
-            border: 1px solid var(--border);
-        }
-        #image-preview { width: 100%; height: 100%; object-fit: cover; }
-
-        /* 2. Rich Text Editor */
-        .editor-wrapper {
-            display: flex;
-            flex-direction: column;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            overflow: hidden;
-            background: var(--bg-panel);
-            flex: 1;
-            min-height: 500px;
-        }
-
-        /* Toolbar */
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid var(--border);
-            flex-wrap: wrap;
-        }
-
-        .tool-btn {
-            background: transparent;
-            border: 1px solid transparent;
-            color: var(--text-muted);
-            padding: 0.4rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        .tool-btn:hover { background: var(--glass-hover); color: var(--text-main); }
-        
-        .separator { width: 1px; height: 20px; background: var(--border); margin: 0 0.5rem; }
-
-        /* Code+ Button (Special) */
-        .code-plus-btn {
-            background: rgba(99, 102, 241, 0.15);
-            color: var(--primary);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            padding: 0.4rem 0.8rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-            gap: 0.4rem;
-        }
-        .code-plus-btn:hover { background: var(--primary); color: white; }
-
-        /* Text Area */
-        .main-textarea {
-            flex: 1;
-            width: 100%;
-            background: transparent;
-            border: none;
-            padding: 1.5rem;
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            font-size: 1.05rem;
-            line-height: 1.7;
-            resize: none;
-            outline: none;
-        }
-        
-        /* Code Block Styling (Visual only inside textarea technically not possible without div, 
-           so we use monospace font for code blocks if user types them) */
-        .main-textarea { font-variant-ligatures: common-ligatures; }
-
-        /* Submit Area */
-        .action-row {
-            display: flex;
-            justify-content: flex-end;
-            padding-bottom: 2rem;
-        }
-
-        .btn-submit {
-            padding: 0.85rem 2rem;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
-        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; filter: grayscale(0.8); transform: none; }
-
-        /* Notification */
-        .notification {
-            position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 1.5rem;
-            border-radius: 8px; background: var(--bg-panel); border: 1px solid var(--border);
-            color: var(--text-main); display: flex; align-items: center; gap: 0.75rem;
-            transform: translateY(100px); opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .notification.show { transform: translateY(0); opacity: 1; }
-        .notification.success { border-left: 4px solid var(--success); }
-        .notification.error { border-left: 4px solid var(--error); }
-
-        /* --- MOBILE --- */
-        .mobile-toggle { display: none; font-size: 1.5rem; cursor: pointer; color: white; margin-right: 1rem; }
-        .sidebar-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-            z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-        }
-        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
-
-        @media (max-width: 768px) {
-            .sidebar { position: fixed; left: -280px; height: 100dvh; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
-            .sidebar.open { left: 0; }
-            .mobile-toggle { display: block; }
-            .close-sidebar-btn { display: block; }
-            .editor-container { padding: 1rem; }
-            .content-header { padding: 1rem; }
-            .toolbar { gap: 0.25rem; } 
-            .tool-btn { padding: 0.3rem; }
-        }
-    </style>
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+</style>
 </head>
 <body>
+<div class="app">
 
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo-container">
-                <img src="images/Logo.png" alt="Logo" class="logo-img">
-                <span class="logo-text">Collective AI</span>
-            </div>
-            <i class="ph ph-x close-sidebar-btn" id="sidebar-close"></i>
-        </div>
-
-        <div class="sidebar-content">
-            <button class="btn-back-dashboard" onclick="window.location.href='dashboard.html'">
-                <i class="ph ph-arrow-left"></i> Back to Chat
-            </button>
-
-            <a href="leaderboard.html" class="nav-item">
-                <i class="ph ph-trophy"></i> Leaderboard
-            </a>
-            <a href="#" class="nav-item active">
-                <i class="ph ph-pencil-simple"></i> Contribute
-            </a>
-        </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-        <div class="content-header">
-            <div style="display:flex; align-items:center;">
-                <i class="ph ph-list mobile-toggle" id="menu-toggle"></i>
-                <div class="header-title">
-                    <h2>Contribute Knowledge</h2>
-                    <p>Expand the neural fabric with your expertise.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="editor-container">
-            
-            <!-- 1. Metadata Section -->
-            <div class="meta-section">
-                <input type="text" id="article-title" class="title-input" placeholder="Article Title...">
-                
-                <div class="meta-grid">
-                    <div class="input-group">
-                        <input type="text" id="article-topics" class="meta-input" placeholder="Topics (e.g. AI, Physics)">
-                    </div>
-                    <label class="image-upload-label">
-                        <i class="ph ph-image"></i> Add Cover Image
-                        <input type="file" id="image-upload" accept="image/*" hidden>
-                    </label>
-                </div>
-                
-                <div id="image-preview-container">
-                    <img id="image-preview" src="" alt="Cover Preview">
-                </div>
-            </div>
-
-            <!-- 2. Rich Editor -->
-            <div class="editor-wrapper">
-                <div class="toolbar">
-                    <button class="tool-btn" onclick="insertFormat('**', '**')" title="Bold"><i class="ph ph-text-b"></i></button>
-                    <button class="tool-btn" onclick="insertFormat('*', '*')" title="Italic"><i class="ph ph-text-italic"></i></button>
-                    <button class="tool-btn" onclick="insertFormat('### ', '')" title="Heading"><i class="ph ph-text-h"></i></button>
-                    <div class="separator"></div>
-                    <button class="tool-btn" onclick="insertFormat('- ', '')" title="List"><i class="ph ph-list-bullets"></i></button>
-                    <button class="tool-btn" onclick="insertFormat('> ', '')" title="Quote"><i class="ph ph-quotes"></i></button>
-                    <div class="separator"></div>
-                    
-                    <!-- Code+ Button -->
-                    <button class="tool-btn code-plus-btn" onclick="insertCodeBlock()">
-                        <i class="ph ph-code"></i> Code+
-                    </button>
-                </div>
-                
-                <textarea id="main-content" class="main-textarea" placeholder="Start writing your article... Use the toolbar to format."></textarea>
-            </div>
-
-            <div class="action-row">
-                <button id="submit-btn" class="btn-submit">
-                    <i class="ph ph-paper-plane-right"></i> Publish to Collective
-                </button>
-            </div>
-
-        </div>
-    </main>
-
-    <!-- Notification -->
-    <div id="notification" class="notification">
-        <i id="notif-icon" class="ph ph-check-circle" style="font-size: 1.2rem;"></i>
-        <span id="notif-msg">Knowledge added successfully.</span>
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar" id="sidebar">
+<div class="sb-inner">
+  <div class="sb-top">
+    <div class="logo-dot">C</div>
+    <span class="logo-lbl">Collective AI</span>
+    <button id="btn-close"><svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg></button>
+  </div>
+  <a href="dashboard.html" class="btn-new">
+    <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H40A16,16,0,0,0,24,64V224a8,8,0,0,0,13,6.22L72,208H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48ZM216,192H69.33a8,8,0,0,0-5.16,1.88L40,213.59V64H216Z"/></svg>
+    Go to Chat
+  </a>
+  <div class="sb-nav">
+    <a href="dashboard.html" class="nav-a">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H40A16,16,0,0,0,24,64V224a8,8,0,0,0,13,6.22L72,208H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48ZM216,192H69.33a8,8,0,0,0-5.16,1.88L40,213.59V64H216Z"/></svg>
+      Chat
+    </a>
+    <a href="contribution.html" class="nav-a active">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M227.32,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.32,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.69,147.32,64l24-24L216,84.69Z"/></svg>
+      Contribute Knowledge
+    </a>
+    <a href="leaderboard.html" class="nav-a">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16H48V152a16,16,0,0,1,16-16H96a16,16,0,0,1,16,16v48h16V104a16,16,0,0,1,16-16h32a16,16,0,0,1,16,16V200h16a8,8,0,0,1,0,16ZM64,200H96V152H64Zm80,0h32V104H144Z"/></svg>
+      Leaderboard
+    </a>
+  </div>
+  <div style="flex:1"></div>
+  <div class="sb-footer">
+    <div class="umenu" id="umenu">
+      <div class="um-it" onclick="location.href='../index.html'">
+        <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8H96a8,8,0,0,0,8-8V168h48v48a8,8,0,0,0,8,8h56a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H168V160a8,8,0,0,0-8-8H96a8,8,0,0,0-8,8v48H48V120l80-80,80,80Z"/></svg>
+        Back to Home
+      </div>
+      <div class="um-sep"></div>
+      <div class="um-it red" id="btn-signout">
+        <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M120,216a8,8,0,0,1-8,8H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h64a8,8,0,0,1,0,16H48V208h64A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"/></svg>
+        Sign Out
+      </div>
     </div>
+    <div class="ucard" id="ucard">
+      <div class="av" id="uav">U</div>
+      <div class="u-info">
+        <div class="u-name" id="uname">…</div>
+        <div class="u-email" id="uemail"></div>
+      </div>
+      <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" style="color:var(--muted);flex-shrink:0"><path d="M112,60a16,16,0,1,1,16,16A16,16,0,0,1,112,60Zm16,52a16,16,0,1,0,16,16A16,16,0,0,0,128,112Zm0,68a16,16,0,1,0,16,16A16,16,0,0,0,128,180Z"/></svg>
+    </div>
+  </div>
+</div>
+</aside>
 
-    <!-- Logic -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+<div class="overlay" id="overlay"></div>
 
-        // --- CONFIG ---
-        const firebaseConfig = JSON.parse(localStorage.getItem('firebaseConfig') || '{}');
-        const appConfig = (typeof __firebase_config !== 'undefined') ? JSON.parse(__firebase_config) : firebaseConfig;
-        const API_URL = "http://localhost:3000/api/contribute"; 
+<!-- ── MAIN ── -->
+<main class="main">
+  <div class="header">
+    <button class="btn-hbg" id="btn-hbg">
+      <svg width="17" height="17" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></svg>
+    </button>
+    <span class="h-title">Contribute Knowledge</span>
+  </div>
 
-        const app = initializeApp(appConfig);
-        const auth = getAuth(app);
-        let currentUser = null;
+  <div class="content">
+    <div class="content-inner">
 
-        // --- AUTH CHECK ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) currentUser = user;
-            else window.location.href = 'app.html';
-        });
+      <!-- Page Hero -->
+      <div class="page-hero">
+        <h1>Teach the Collective</h1>
+        <p>Every piece of knowledge you share improves the AI for everyone. Contributions are embedded into the vector database and used to ground future responses.</p>
+      </div>
 
-        // --- UI ELEMENTS ---
-        const titleInput = document.getElementById('article-title');
-        const topicsInput = document.getElementById('article-topics');
-        const textArea = document.getElementById('main-content');
-        const imageInput = document.getElementById('image-upload');
-        const imagePreview = document.getElementById('image-preview');
-        const previewContainer = document.getElementById('image-preview-container');
-        const submitBtn = document.getElementById('submit-btn');
-        const notification = document.getElementById('notification');
-        const notifMsg = document.getElementById('notif-msg');
-        const notifIcon = document.getElementById('notif-icon');
+      <!-- Stats -->
+      <div class="stats-bar">
+        <div class="stat">
+          <div class="stat-val" id="stat-total">—</div>
+          <div class="stat-lbl">Your contributions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="stat-today">—</div>
+          <div class="stat-lbl">Added today</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="stat-rank">—</div>
+          <div class="stat-lbl">Leaderboard rank</div>
+        </div>
+      </div>
 
-        // Sidebar Logic
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        const menuToggle = document.getElementById('menu-toggle');
-        const closeBtn = document.getElementById('sidebar-close');
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('submit')">Submit Knowledge</button>
+        <button class="tab-btn" onclick="switchTab('mine')">My Contributions</button>
+      </div>
 
-        function toggleSidebar(show) {
-            if(show) { sidebar.classList.add('open'); overlay.classList.add('active'); }
-            else { sidebar.classList.remove('open'); overlay.classList.remove('active'); }
-        }
-        menuToggle.addEventListener('click', () => toggleSidebar(true));
-        closeBtn.addEventListener('click', () => toggleSidebar(false));
-        overlay.addEventListener('click', () => toggleSidebar(false));
+      <!-- ── SUBMIT TAB ── -->
+      <div class="tab-panel active" id="tab-submit">
 
-        // --- EDITOR LOGIC ---
-        
-        // 1. Image Preview
-        imageInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    previewContainer.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            }
-        });
+        <div class="quality-guide">
+          <h3>
+            <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M236,128a108,108,0,1,1-108-108A108.12,108.12,0,0,1,236,128Zm-108,84a84,84,0,1,0-84-84A84.09,84.09,0,0,0,128,212Zm-4-136v44.69L96.49,98.34A12,12,0,1,0,79.51,115.66l32,32A12,12,0,0,0,128,152a12,12,0,0,0,8.49-3.51l32-32a12,12,0,0,0-16.98-16.98L124,128.69V76A12,12,0,0,0,124,76Z"/></svg>
+            Tips for high-quality contributions
+          </h3>
+          <ul>
+            <li>Be specific and factual — avoid vague generalisations</li>
+            <li>Write in clear, complete sentences the AI can cite directly</li>
+            <li>Include context: who, what, when, where, why</li>
+            <li>Choose the most accurate category so retrieval works well</li>
+            <li>Add tags to help surface your entry for related queries</li>
+          </ul>
+        </div>
 
-        // 2. Toolbar Functions (Exposed to window for onclick)
-        window.insertFormat = (prefix, suffix) => {
-            const start = textArea.selectionStart;
-            const end = textArea.selectionEnd;
-            const text = textArea.value;
-            const before = text.substring(0, start);
-            const selection = text.substring(start, end);
-            const after = text.substring(end);
+        <div class="form-card">
+          <h2>
+            <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M227.32,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.32,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.69,147.32,64l24-24L216,84.69Z"/></svg>
+            New Knowledge Entry
+          </h2>
 
-            textArea.value = before + prefix + selection + suffix + after;
-            textArea.focus();
-            textArea.selectionStart = textArea.selectionEnd = start + prefix.length + selection.length + suffix.length;
-        };
+          <div class="field">
+            <label for="f-title">Title <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="f-title" placeholder="e.g. How photosynthesis converts light to energy" maxlength="120">
+            <div class="field-hint">A clear, descriptive title helps with retrieval</div>
+          </div>
 
-        window.insertCodeBlock = () => {
-            const template = "\n```python\n# Write your code here\nprint('Hello World')\n```\n";
-            insertFormat(template, "");
-        };
+          <div class="field">
+            <label for="f-category">Category <span style="color:var(--danger)">*</span></label>
+            <select id="f-category">
+              <option value="">Select a category…</option>
+              <option value="science">Science & Technology</option>
+              <option value="history">History & Culture</option>
+              <option value="mathematics">Mathematics</option>
+              <option value="health">Health & Medicine</option>
+              <option value="business">Business & Finance</option>
+              <option value="arts">Arts & Literature</option>
+              <option value="geography">Geography & Nature</option>
+              <option value="programming">Programming & AI</option>
+              <option value="philosophy">Philosophy & Ethics</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
 
-        // --- SUBMISSION LOGIC ---
-        submitBtn.addEventListener('click', async () => {
-            const title = titleInput.value.trim();
-            const topics = topicsInput.value.trim();
-            const body = textArea.value.trim();
+          <div class="field">
+            <label for="f-content">
+              Knowledge Content <span style="color:var(--danger)">*</span>
+              <span class="char-count" id="char-count">0 / 4000</span>
+            </label>
+            <textarea id="f-content" placeholder="Write the knowledge you want to contribute. Be detailed, factual, and clear. The AI will use this text to answer relevant questions…" maxlength="4000"></textarea>
+            <div class="field-hint">Minimum 50 characters. Longer, well-structured entries work best.</div>
+          </div>
 
-            if (!title || body.length < 50) {
-                showNotification('error', 'Please provide a title and at least 50 characters of content.');
-                return;
-            }
+          <div class="field">
+            <label>Tags</label>
+            <div class="tags-wrap" id="tags-wrap">
+              <input class="tag-input" id="tag-input" type="text" placeholder="Add tag, press Enter…" maxlength="30">
+            </div>
+            <div class="field-hint">Up to 8 tags. Press Enter or comma to add.</div>
+          </div>
 
-            setLoading(true);
+          <div class="field">
+            <label for="f-source">Source URL <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+            <input type="url" id="f-source" placeholder="https://example.com/article">
+            <div class="field-hint">Link to the original source for verification</div>
+          </div>
 
-            // Construct composite text for RAG backend (which expects a single string)
-            // Ideally, backend schema would be updated, but this ensures compatibility with rag.py
-            const compositeText = `TITLE: ${title}\nTOPICS: ${topics}\n\n${body}`;
+          <button class="btn-submit" id="btn-submit">
+            <span class="btn-txt">Submit Contribution</span>
+            <div class="spin"></div>
+          </button>
+        </div>
+      </div><!-- /tab-submit -->
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: compositeText,
-                        userId: currentUser ? currentUser.uid : "anonymous"
-                    })
-                });
+      <!-- ── MY CONTRIBUTIONS TAB ── -->
+      <div class="tab-panel" id="tab-mine">
+        <div class="contrib-list" id="contrib-list">
+          <div class="empty-state">
+            <svg width="36" height="36" viewBox="0 0 256 256" fill="currentColor"><path d="M227.32,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.32,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.69,147.32,64l24-24L216,84.69Z"/></svg>
+            <p>Loading your contributions…</p>
+          </div>
+        </div>
+      </div><!-- /tab-mine -->
 
-                if (!response.ok) throw new Error('Server error');
+    </div>
+  </div>
+</main>
+</div>
 
-                showNotification('success', 'Knowledge assimilated into the Collective.');
-                
-                // Clear Form
-                titleInput.value = '';
-                topicsInput.value = '';
-                textArea.value = '';
-                imageInput.value = '';
-                previewContainer.style.display = 'none';
+<div class="toasts" id="toasts"></div>
 
-            } catch (error) {
-                console.error(error);
-                showNotification('error', 'Failed to connect to the neural core.');
-            } finally {
-                setLoading(false);
-            }
-        });
+<script>
+/* ── UI (sync, no imports) ── */
+(function(){
+var sidebar = document.getElementById('sidebar');
+var overlay = document.getElementById('overlay');
+var btnHbg  = document.getElementById('btn-hbg');
+var btnClose= document.getElementById('btn-close');
+var ucard   = document.getElementById('ucard');
+var umenu   = document.getElementById('umenu');
 
-        function setLoading(isLoading) {
-            if(isLoading) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="ph ph-spinner" style="animation: spin 1s linear infinite;"></i> Processing...';
-            } else {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="ph ph-paper-plane-right"></i> Publish to Collective';
-            }
-        }
+function mobile(){ return window.innerWidth <= 768; }
 
-        function showNotification(type, msg) {
-            notifMsg.textContent = msg;
-            notification.className = `notification show ${type}`;
-            notifIcon.className = type === 'success' ? 'ph ph-check-circle' : 'ph ph-warning-circle';
-            notifIcon.style.color = type === 'success' ? 'var(--success)' : 'var(--error)';
-            setTimeout(() => notification.classList.remove('show'), 4000);
-        }
+btnHbg.onclick = function(){
+  if(mobile()){ var o=!sidebar.classList.contains('sb-on'); sidebar.classList.toggle('sb-on',o); overlay.classList.toggle('ov-on',o); }
+  else{ sidebar.classList.toggle('sb-off'); }
+};
+function closeSB(){ sidebar.classList.remove('sb-on'); overlay.classList.remove('ov-on'); }
+btnClose.onclick = closeSB;
+overlay.onclick  = closeSB;
 
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
-        document.head.appendChild(styleSheet);
+ucard.onclick = function(e){ e.stopPropagation(); umenu.classList.toggle('open'); };
+document.onclick = function(){ umenu.classList.remove('open'); };
 
-    </script>
+/* Tags */
+var tags = [];
+var tagInput = document.getElementById('tag-input');
+var tagsWrap = document.getElementById('tags-wrap');
+
+function renderTags(){
+  var existing = tagsWrap.querySelectorAll('.tag');
+  existing.forEach(function(t){ t.remove(); });
+  tags.forEach(function(t,i){
+    var el = document.createElement('div');
+    el.className='tag';
+    el.innerHTML = esc(t) + '<button onclick="removeTag('+i+')"><svg width="10" height="10" viewBox="0 0 256 256" fill="currentColor"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg></button>';
+    tagsWrap.insertBefore(el, tagInput);
+  });
+}
+
+window.removeTag = function(i){ tags.splice(i,1); renderTags(); };
+
+tagInput.onkeydown = function(e){
+  if((e.key==='Enter'||e.key===',')&&tags.length<8){
+    e.preventDefault();
+    var v=tagInput.value.replace(/,/g,'').trim();
+    if(v && !tags.includes(v)){ tags.push(v); renderTags(); tagInput.value=''; }
+  }
+  if(e.key==='Backspace'&&!tagInput.value&&tags.length){ tags.pop(); renderTags(); }
+};
+
+tagsWrap.onclick = function(){ tagInput.focus(); };
+
+/* Char count */
+var fContent = document.getElementById('f-content');
+var charCount = document.getElementById('char-count');
+fContent.oninput = function(){
+  var l=fContent.value.length;
+  charCount.textContent = l+' / 4000';
+  charCount.classList.toggle('warn', l>3500);
+};
+
+/* Tab switch */
+window.switchTab = function(tab){
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){ b.classList.toggle('active', (i===0&&tab==='submit')||(i===1&&tab==='mine')); });
+  document.getElementById('tab-submit').classList.toggle('active', tab==='submit');
+  document.getElementById('tab-mine').classList.toggle('active', tab==='mine');
+  if(tab==='mine') window._ui && window._ui.loadMine && window._ui.loadMine();
+};
+
+/* Toast */
+function toast(msg, type){
+  var el=document.createElement('div');
+  el.className='toast '+(type||'info');
+  el.textContent=msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.remove(); }, 3000);
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* Expose to Firebase module */
+window._ui = {
+  toast: toast,
+  esc: esc,
+  getTags: function(){ return tags.slice(); },
+  clearForm: function(){
+    document.getElementById('f-title').value='';
+    document.getElementById('f-category').value='';
+    fContent.value='';
+    charCount.textContent='0 / 4000';
+    document.getElementById('f-source').value='';
+    tags=[];
+    renderTags();
+  },
+  setLoading: function(on){
+    var btn=document.getElementById('btn-submit');
+    btn.classList.toggle('loading',on);
+    btn.disabled=on;
+  },
+  setStats: function(total,today,rank){
+    document.getElementById('stat-total').textContent=total;
+    document.getElementById('stat-today').textContent=today;
+    document.getElementById('stat-rank').textContent=rank!==null?'#'+rank:'—';
+  },
+  renderContribs: function(list){
+    var el=document.getElementById('contrib-list');
+    if(!list.length){
+      el.innerHTML='<div class="empty-state"><svg width="36" height="36" viewBox="0 0 256 256" fill="currentColor"><path d="M227.32,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.32,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.69,147.32,64l24-24L216,84.69Z"/></svg><p>You haven\'t contributed yet.<br>Be the first to teach the AI something new!</p></div>';
+      return;
+    }
+    el.innerHTML = list.map(function(c){
+      var date = c.createdAt ? new Date(c.createdAt.seconds*1000).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+      var tagsHtml = (c.tags||[]).map(function(t){ return '<span class="ci-tag">'+esc(t)+'</span>'; }).join('');
+      return '<div class="contrib-item">'+
+        '<div class="ci-header"><span class="ci-cat">'+esc(c.category||'other')+'</span><span class="ci-date">'+date+'</span></div>'+
+        '<div class="ci-content">'+esc(c.title||'')+(c.title?'\n':'')+esc(c.content||'')+'</div>'+
+        (tagsHtml?'<div class="ci-tags">'+tagsHtml+'</div>':'')+
+        '<div class="ci-actions">'+
+          '<button class="ci-btn del" data-id="'+c.id+'"><svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192Z"/></svg> Delete</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    el.querySelectorAll('.ci-btn.del').forEach(function(btn){
+      btn.onclick = function(){ window._ui.deleteContrib && window._ui.deleteContrib(btn.dataset.id); };
+    });
+  },
+  closeSB: closeSB
+};
+console.log('UI ready');
+})();
+</script>
+
+<script type="module">
+import { initializeApp }                          from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }   from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc,
+         getDocs, deleteDoc, getCountFromServer,
+         serverTimestamp, query, orderBy, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const BACKEND = location.hostname==='localhost'
+  ? 'http://localhost:8000'
+  : 'https://collective-ai-backend.onrender.com';
+
+const app  = initializeApp({
+  apiKey:'AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU',
+  authDomain:'collective-ai-auth.firebaseapp.com',
+  projectId:'collective-ai-auth',
+  storageBucket:'collective-ai-auth.firebasestorage.app',
+  messagingSenderId:'851370153534',
+  appId:'1:851370153534:web:484314623047fd110ca36f'
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const ui   = window._ui;
+
+let me = null;
+const contribCol = () => collection(db, 'users', me.uid, 'contributions');
+
+/* ── AUTH ── */
+onAuthStateChanged(auth, async user => {
+  if(!user){ location.href='app.html'; return; }
+  me = user;
+
+  // Set user UI
+  const name = user.displayName || user.email.split('@')[0];
+  document.getElementById('uname').textContent  = name;
+  document.getElementById('uemail').textContent = user.email||'';
+  const av = document.getElementById('uav');
+  if(user.photoURL){ av.innerHTML=`<img src="${user.photoURL}" alt="">`; }
+  else{ av.textContent = name.charAt(0).toUpperCase(); }
+
+  await loadStats();
+  ui.loadMine = loadMine;
+});
+
+document.getElementById('btn-signout').onclick = async () => {
+  await signOut(auth); location.href='../index.html';
+};
+
+/* ── STATS ── */
+async function loadStats(){
+  try {
+    const snap = await getDocs(query(contribCol(), orderBy('createdAt','desc')));
+    const all  = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayCount = all.filter(c => c.createdAt && c.createdAt.seconds*1000 >= today.getTime()).length;
+    ui.setStats(all.length, todayCount, null); // rank needs global query — omit for now
+  } catch(e){ console.warn('stats:', e); }
+}
+
+/* ── LOAD MY CONTRIBUTIONS ── */
+async function loadMine(){
+  document.getElementById('contrib-list').innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
+  try {
+    const snap = await getDocs(query(contribCol(), orderBy('createdAt','desc')));
+    const list = snap.docs.map(d=>({id:d.id,...d.data()}));
+    ui.renderContribs(list);
+  } catch(e){ ui.toast('Could not load contributions','err'); }
+}
+
+/* ── DELETE CONTRIBUTION ── */
+ui.deleteContrib = async function(cid){
+  if(!confirm('Delete this contribution? This cannot be undone.')) return;
+  try {
+    await deleteDoc(doc(db,'users',me.uid,'contributions',cid));
+    ui.toast('Contribution deleted','info');
+    loadMine();
+    loadStats();
+  } catch { ui.toast('Delete failed','err'); }
+};
+
+/* ── SUBMIT ── */
+document.getElementById('btn-submit').onclick = async function(){
+  const title    = document.getElementById('f-title').value.trim();
+  const category = document.getElementById('f-category').value;
+  const content  = document.getElementById('f-content').value.trim();
+  const source   = document.getElementById('f-source').value.trim();
+  const tags     = ui.getTags();
+
+  if(!title)              { ui.toast('Please enter a title','err'); return; }
+  if(!category)           { ui.toast('Please select a category','err'); return; }
+  if(content.length < 50) { ui.toast('Content must be at least 50 characters','err'); return; }
+
+  ui.setLoading(true);
+
+  try {
+    // 1. Save to Firestore
+    const ref = await addDoc(contribCol(), {
+      title, category, content, tags,
+      source: source || null,
+      userId: me.uid,
+      createdAt: serverTimestamp()
+    });
+
+    // 2. Send to backend for embedding into ChromaDB
+    try {
+      await fetch(`${BACKEND}/api/contribute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: ref.id, title, category, content, tags, userId: me.uid })
+      });
+    } catch(backendErr) {
+      // Firestore save succeeded; backend is optional
+      console.warn('Backend embedding failed:', backendErr);
+      ui.toast('Saved, but embedding failed — the AI may not use this yet','info');
+    }
+
+    ui.clearForm();
+    ui.setLoading(false);
+    ui.toast('Contribution submitted! Thank you 🎉','ok');
+    loadStats();
+  } catch(e) {
+    ui.setLoading(false);
+    ui.toast('Submission failed — try again','err');
+    console.error(e);
+  }
+};
+</script>
 </body>
 </html>
