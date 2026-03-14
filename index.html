@@ -230,6 +230,40 @@
         }
         .creator-link:hover { background: #fff; color: #000; }
 
+        /* --- FAQ SECTION --- */
+        .faq-section { padding: 2rem 0 8rem; }
+        .faq-wrap {
+            max-width: 1000px; margin: 0 auto;
+            background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);
+            border-radius: 28px; padding: 3rem 2.25rem;
+        }
+        .faq-header { text-align: center; margin-bottom: 2rem; }
+        .faq-header h2 { font-size: clamp(1.8rem, 4vw, 3rem); margin-bottom: 0.75rem; }
+        .faq-header p { color: var(--text-muted); max-width: 650px; margin: 0 auto; line-height: 1.7; }
+
+        .faq-list { display: grid; gap: 0.9rem; }
+        .faq-item {
+            border: 1px solid var(--glass-border); border-radius: 14px;
+            background: rgba(255,255,255,0.02); overflow: hidden;
+        }
+        .faq-item summary {
+            list-style: none; cursor: pointer; padding: 1rem 3rem 1rem 1.1rem;
+            font-weight: 600; font-size: 1rem; position: relative;
+        }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-item summary::after {
+            content: '+'; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+            width: 1.6rem; height: 1.6rem; border-radius: 999px; display: grid; place-items: center;
+            background: rgba(168,85,247,0.15); color: #d8b4fe; font-size: 1rem; font-weight: 700;
+            transition: transform 0.2s ease;
+        }
+        .faq-item[open] summary::after {
+            content: '−'; transform: translateY(-50%) rotate(180deg);
+        }
+        .faq-answer {
+            padding: 0 1.1rem 1.1rem; color: var(--text-muted); line-height: 1.7; font-size: 0.96rem;
+        }
+
         /* --- FOOTER --- */
         footer { padding: 3rem 2rem; border-top: 1px solid var(--glass-border); text-align: center; }
         footer .logo { justify-content: center; margin-bottom: 1rem; opacity: 0.5; }
@@ -268,6 +302,9 @@
             .hero-desc { font-size: 1rem; }
             .core-box { padding: 3rem 1.5rem; border-radius: 20px; }
             .creator-card { padding: 2.25rem 1.25rem; border-radius: 20px; }
+            .faq-section { padding-bottom: 6rem; }
+            .faq-wrap { padding: 2.25rem 1.25rem; border-radius: 20px; }
+            .faq-item summary { font-size: 0.96rem; }
             .marquee-section { padding: 2.5rem 0; }
         }
     </style>
@@ -400,6 +437,36 @@
                 <div class="creator-links">
                     <a href="https://mitra-codiga.vercel.app/" target="_blank" rel="noopener noreferrer" class="creator-link">mitra-codiga</a>
                     <a href="https://music-flow-roulette.vercel.app/" target="_blank" rel="noopener noreferrer" class="creator-link">MusicFlow</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="faq-section" id="faq">
+        <div class="container">
+            <div class="faq-wrap">
+                <div class="faq-header">
+                    <h2 class="font-display">Frequently Asked Questions</h2>
+                    <p>Everything you need to know before you contribute to Collective AI and start building with verified human intelligence.</p>
+                </div>
+                <div class="faq-list">
+                    <details class="faq-item" open>
+                        <summary>What makes Collective AI different from traditional AI tools?</summary>
+                        <div class="faq-answer">Collective AI is grounded in curated, verifiable human knowledge contributions rather than purely statistical next-token prediction from unverified web-scale data.</div>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Who can contribute expertise to the platform?</summary>
+                        <div class="faq-answer">Developers, researchers, operators, and domain specialists can all contribute high-quality writeups, workflows, and problem-solving methods through the contribution portal.</div>
+                    </details>
+                    <details class="faq-item">
+                        <summary>How is contribution quality maintained?</summary>
+                        <div class="faq-answer">Submissions are structured for clarity and relevance, then embedded into the retrieval layer where semantic checks and curation standards improve consistency over time.</div>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Is the FAQ section mobile-friendly?</summary>
+                        <div class="faq-answer">Yes. This section uses responsive spacing, scalable typography, and collapsible items that work smoothly across phones, tablets, and desktop screens.</div>
+                    </details>
                 </div>
             </div>
         </div>
