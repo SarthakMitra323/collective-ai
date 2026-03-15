@@ -119,21 +119,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Each user owns their own subtree
     match /users/{userId} {
       allow read, write: if request.auth != null
                          && request.auth.uid == userId;
 
+      // Chat sessions
       match /sessions/{sessionId} {
         allow read, write: if request.auth != null
                            && request.auth.uid == userId;
 
+        // Messages within a session
         match /messages/{messageId} {
           allow read, write: if request.auth != null
                              && request.auth.uid == userId;
         }
       }
+
+      // Knowledge contributions (metadata + inline content)
+      match /contributions/{contributionId} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == userId;
+      }
     }
 
+    // Block everything else
     match /{document=**} {
       allow read, write: if false;
     }
