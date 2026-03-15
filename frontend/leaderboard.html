@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard | Collective AI</title>
+<link rel="icon" href="images/Logo-favicon.png" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#09090b;--panel:#111113;--hover:#1a1a1f;--card:#1e1e24;
+  --border:rgba(255,255,255,.08);--bhi:rgba(255,255,255,.13);
+  --primary:#6366f1;--pdark:#4f46e5;--accent:#a78bfa;
+  --text:#f1f1f3;--sub:#a1a1aa;--muted:#6b6b75;
+  --danger:#ef4444;--success:#22c55e;--gold:#f59e0b;--silver:#94a3b8;--bronze:#c2713f;
+  --sw:260px
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;font-size:15px;overflow:hidden;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+/* ── APP ── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;flex-shrink:0;overflow:hidden;z-index:60;width:var(--sw);transition:width .25s ease,border-color .25s ease}
+.sidebar.sb-off{width:0;border-color:transparent}
+.sidebar.sb-off .sb-inner{opacity:0;pointer-events:none}
+.sb-inner{width:var(--sw);min-width:var(--sw);height:100%;display:flex;flex-direction:column;transition:opacity .2s}
+@media(max-width:768px){
+  .sidebar{position:fixed!important;top:0;left:0;bottom:0;width:var(--sw)!important;border-color:var(--border)!important;transform:translateX(-100%);transition:transform .25s ease;z-index:200}
+  .sidebar.sb-off{width:var(--sw)!important;border-color:var(--border)!important;transform:translateX(-100%)}
+  .sidebar.sb-on{transform:translateX(0)!important}
+  .sb-inner{opacity:1!important;pointer-events:auto!important}
+  #btn-close{display:flex!important}
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);z-index:190}
+@media(max-width:768px){.overlay{display:block;opacity:0;pointer-events:none;transition:opacity .25s}.overlay.ov-on{opacity:1;pointer-events:auto}}
+
+.sb-top{padding:12px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo-dot{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.logo-lbl{font-size:.87rem;font-weight:600;flex:1}
+#btn-close{display:none;width:28px;height:28px;border-radius:6px;align-items:center;justify-content:center;color:var(--muted);transition:color .15s,background .15s;flex-shrink:0}
+#btn-close:hover{color:var(--text);background:var(--hover)}
+.sb-nav{padding:4px 10px 8px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.nav-a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;color:var(--sub);font-size:.82rem;font-weight:500;transition:color .15s,background .15s}
+.nav-a:hover{color:var(--text);background:var(--hover)}
+.nav-a.active{color:var(--accent);background:rgba(167,139,250,.09)}
+.sb-footer{padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0;position:relative}
+.umenu{position:absolute;bottom:calc(100% + 6px);left:10px;right:10px;background:var(--card);border:1px solid var(--bhi);border-radius:10px;padding:5px;display:none;flex-direction:column;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:300}
+.umenu.open{display:flex}
+.um-it{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;font-size:.81rem;color:var(--sub);cursor:pointer;transition:color .15s,background .15s}
+.um-it:hover{color:var(--text);background:var(--hover)}
+.um-it.red:hover{color:var(--danger);background:rgba(239,68,68,.09)}
+.um-sep{height:1px;background:var(--border);margin:3px 0}
+.ucard{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s}
+.ucard:hover{background:var(--hover)}
+.av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover}
+.u-info{flex:1;min-width:0}
+.u-name{font-size:.81rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.u-email{font-size:.70rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;height:100%;overflow:hidden;min-width:0}
+.header{height:52px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--border);background:rgba(9,9,11,.88);backdrop-filter:blur(10px)}
+.btn-hbg{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--sub);flex-shrink:0;transition:color .15s,background .15s}
+.btn-hbg:hover{color:var(--text);background:var(--hover)}
+.h-title{flex:1;font-size:.85rem;font-weight:600;color:var(--sub)}
+.h-refresh{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:color .15s,background .15s,transform .3s}
+.h-refresh:hover{color:var(--text);background:var(--hover)}
+.h-refresh.spinning{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:32px 24px 60px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--card);border-radius:4px}
+.content-inner{max-width:760px;margin:0 auto}
+
+/* ── HERO ── */
+.page-hero{margin-bottom:28px}
+.page-hero h1{font-size:1.4rem;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
+.page-hero p{font-size:.86rem;color:var(--sub);line-height:1.65;max-width:500px}
+
+/* ── GLOBAL STATS BAR ── */
+.global-stats{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}
+.gstat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:110px}
+.gstat-val{font-size:1.3rem;font-weight:700;letter-spacing:-.03em}
+.gstat-lbl{font-size:.72rem;color:var(--muted);margin-top:2px}
+
+/* ── PERIOD TABS ── */
+.period-tabs{display:flex;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:24px;gap:2px}
+.pt-btn{flex:1;padding:8px;border-radius:7px;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;background:none;border:none;font-family:inherit;transition:color .15s,background .15s}
+.pt-btn.active{background:var(--panel);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* ── PODIUM ── */
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-bottom:32px;padding:0 8px}
+.pod{display:flex;flex-direction:column;align-items:center;flex:1;max-width:180px}
+.pod-platform{width:100%;border-radius:10px 10px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;position:relative;min-height:80px}
+.pod:nth-child(1) .pod-platform{background:linear-gradient(180deg,rgba(148,163,184,.15) 0%,rgba(148,163,184,.05) 100%);border:1px solid rgba(148,163,184,.2);min-height:80px}
+.pod:nth-child(2) .pod-platform{background:linear-gradient(180deg,rgba(245,158,11,.18) 0%,rgba(245,158,11,.05) 100%);border:1px solid rgba(245,158,11,.3);min-height:112px}
+.pod:nth-child(3) .pod-platform{background:linear-gradient(180deg,rgba(194,113,63,.15) 0%,rgba(194,113,63,.05) 100%);border:1px solid rgba(194,113,63,.25);min-height:64px}
+.pod-rank{font-size:1.5rem;position:absolute;top:-18px}
+.pod-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;position:absolute;top:-42px}
+.pod-avatar img{width:100%;height:100%;object-fit:cover}
+.pod:nth-child(1) .pod-avatar{background:linear-gradient(135deg,#94a3b8,#64748b);box-shadow:0 0 0 3px rgba(148,163,184,.3)}
+.pod:nth-child(2) .pod-avatar{background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 0 0 3px rgba(245,158,11,.35);width:60px;height:60px;font-size:1.2rem}
+.pod:nth-child(3) .pod-avatar{background:linear-gradient(135deg,#c2713f,#92400e);box-shadow:0 0 0 3px rgba(194,113,63,.3)}
+.pod-info{text-align:center;padding-top:16px;width:100%}
+.pod-name{font-size:.84rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 6px}
+.pod-count{font-size:.72rem;color:var(--muted);margin-top:2px}
+.pod:nth-child(2) .pod-name{font-size:.9rem}
+.pod:nth-child(2) .pod-count{font-size:.76rem;color:var(--gold)}
+.pod:nth-child(1) .pod-count{color:var(--silver)}
+.pod:nth-child(3) .pod-count{color:var(--bronze)}
+
+.podium-wrap{margin-bottom:8px}
+
+/* ── RANK TABLE ── */
+.rank-table{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.rt-header{display:grid;grid-template-columns:48px 1fr 80px 80px 80px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--card)}
+.rt-header span{font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.rt-header .rth-rank{text-align:center}
+.rt-header .rth-num{text-align:right}
+
+.rt-row{display:grid;grid-template-columns:48px 1fr 80px 80px 80px;gap:0;padding:13px 16px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;cursor:default}
+.rt-row:last-child{border-bottom:none}
+.rt-row:hover{background:var(--hover)}
+.rt-row.is-me{background:rgba(99,102,241,.07);border-left:2px solid var(--primary)}
+
+.rr-rank{text-align:center;font-size:.82rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--muted)}
+.rr-rank.top1{color:var(--gold)}
+.rr-rank.top2{color:var(--silver)}
+.rr-rank.top3{color:var(--bronze)}
+
+.rr-user{display:flex;align-items:center;gap:10px;min-width:0}
+.rr-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.73rem;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
+.rr-av img{width:100%;height:100%;object-fit:cover}
+.rr-name{font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr-badge{font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:20px;flex-shrink:0}
+.badge-you{background:rgba(99,102,241,.15);color:var(--accent);border:1px solid rgba(99,102,241,.3)}
+
+.rr-num{text-align:right;font-size:.82rem;font-family:'JetBrains Mono',monospace;color:var(--sub)}
+.rr-num.hi{color:var(--text);font-weight:600}
+
+/* ── EMPTY / LOADING STATES ── */
+.state-msg{text-align:center;padding:56px 24px;color:var(--muted)}
+.state-msg svg{margin-bottom:14px;opacity:.35}
+.state-msg p{font-size:.84rem;line-height:1.65}
+.spinner-ring{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+
+/* ── MY RANK BANNER ── */
+.my-rank-banner{display:none;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.my-rank-banner.visible{display:flex}
+.mrb-left{display:flex;align-items:center;gap:10px}
+.mrb-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0}
+.mrb-av img{width:100%;height:100%;object-fit:cover}
+.mrb-name{font-size:.84rem;font-weight:700}
+.mrb-sub{font-size:.73rem;color:var(--sub)}
+.mrb-right{display:flex;gap:20px;align-items:center}
+.mrb-stat{text-align:right}
+.mrb-stat-val{font-size:1.1rem;font-weight:700;letter-spacing:-.02em;font-family:'JetBrains Mono',monospace}
+.mrb-stat-lbl{font-size:.68rem;color:var(--muted)}
+
+/* ── CATEGORY FILTER ── */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.cat-pill{padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:.75rem;font-weight:500;color:var(--sub);cursor:pointer;background:var(--panel);transition:border-color .15s,color .15s,background .15s}
+.cat-pill:hover{border-color:var(--bhi);color:var(--text)}
+.cat-pill.active{border-color:var(--primary);color:var(--accent);background:rgba(99,102,241,.08)}
+
+/* ── TOASTS ── */
+.toasts{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:400;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{padding:8px 18px;background:var(--card);border:1px solid var(--bhi);border-radius:20px;font-size:.77rem;color:var(--sub);animation:fi .18s ease-out}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+@media(max-width:580px){
+  .rt-header,.rt-row{grid-template-columns:40px 1fr 64px 0 0}
+  .rt-header .rth-words,.rt-header .rth-cats,.rr-num.words,.rr-num.cats{display:none}
+  .podium{gap:6px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar" id="sidebar">
+<div class="sb-inner">
+  <div class="sb-top">
+    <div class="logo-dot">C</div>
+    <span class="logo-lbl">Collective AI</span>
+    <button id="btn-close"><svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg></button>
+  </div>
+  <div class="sb-nav">
+    <a href="dashboard.html" class="nav-a">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H40A16,16,0,0,0,24,64V224a8,8,0,0,0,13,6.22L72,208H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48ZM216,192H69.33a8,8,0,0,0-5.16,1.88L40,213.59V64H216Z"/></svg>Chat
+    </a>
+    <a href="contribution.html" class="nav-a">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M227.32,73.37,182.63,28.69a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.32,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.69,147.32,64l24-24L216,84.69Z"/></svg>Contribute Knowledge
+    </a>
+    <a href="leaderboard.html" class="nav-a active">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16H48V152a16,16,0,0,1,16-16H96a16,16,0,0,1,16,16v48h16V104a16,16,0,0,1,16-16h32a16,16,0,0,1,16,16V200h16a8,8,0,0,1,0,16ZM64,200H96V152H64Zm80,0h32V104H144Z"/></svg>Leaderboard
+    </a>
+  </div>
+  <div style="flex:1"></div>
+  <div class="sb-footer">
+    <div class="umenu" id="umenu">
+      <div class="um-it" onclick="location.href='../index.html'">
+        <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8H96a8,8,0,0,0,8-8V168h48v48a8,8,0,0,0,8,8h56a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H168V160a8,8,0,0,0-8-8H96a8,8,0,0,0-8,8v48H48V120l80-80,80,80Z"/></svg>Back to Home
+      </div>
+      <div class="um-sep"></div>
+      <div class="um-it red" id="btn-signout">
+        <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M120,216a8,8,0,0,1-8,8H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h64a8,8,0,0,1,0,16H48V208h64A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"/></svg>Sign Out
+      </div>
+    </div>
+    <div class="ucard" id="ucard">
+      <div class="av" id="uav">U</div>
+      <div class="u-info">
+        <div class="u-name" id="uname">…</div>
+        <div class="u-email" id="uemail"></div>
+      </div>
+      <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" style="color:var(--muted);flex-shrink:0"><path d="M112,60a16,16,0,1,1,16,16A16,16,0,0,1,112,60Zm16,52a16,16,0,1,0,16,16A16,16,0,0,0,128,112Zm0,68a16,16,0,1,0,16,16A16,16,0,0,0,128,180Z"/></svg>
+    </div>
+  </div>
+</div>
+</aside>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- ── MAIN ── -->
+<main class="main">
+  <div class="header">
+    <button class="btn-hbg" id="btn-hbg">
+      <svg width="17" height="17" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></svg>
+    </button>
+    <span class="h-title">Leaderboard</span>
+    <button class="h-refresh" id="btn-refresh" title="Refresh">
+      <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16h28.69L196.12,79.43a80,80,0,1,0,1.67,113,8,8,0,0,1,11.16,11.46A96,96,0,1,1,204.94,65.51L220,80.07V56a8,8,0,0,1,16,0Z"/></svg>
+    </button>
+  </div>
+
+  <div class="content">
+    <div class="content-inner">
+
+      <div class="page-hero">
+        <h1>Top Contributors</h1>
+        <p>The community members who have taught the AI the most. Every contribution improves responses for everyone.</p>
+      </div>
+
+      <!-- Global stats -->
+      <div class="global-stats">
+        <div class="gstat"><div class="gstat-val" id="gs-contributors">—</div><div class="gstat-lbl">Contributors</div></div>
+        <div class="gstat"><div class="gstat-val" id="gs-articles">—</div><div class="gstat-lbl">Total articles</div></div>
+        <div class="gstat"><div class="gstat-val" id="gs-words">—</div><div class="gstat-lbl">Total words</div></div>
+        <div class="gstat"><div class="gstat-val" id="gs-categories">—</div><div class="gstat-lbl">Categories covered</div></div>
+      </div>
+
+      <!-- Period selector -->
+      <div class="period-tabs">
+        <button class="pt-btn active" id="pt-all"   onclick="setPeriod('all')">All time</button>
+        <button class="pt-btn"        id="pt-month" onclick="setPeriod('month')">This month</button>
+        <button class="pt-btn"        id="pt-week"  onclick="setPeriod('week')">This week</button>
+      </div>
+
+      <!-- Category filter -->
+      <div class="filter-row" id="cat-filter">
+        <button class="cat-pill active" data-cat="all" onclick="setCat('all')">All categories</button>
+      </div>
+
+      <!-- Your rank banner -->
+      <div class="my-rank-banner" id="my-rank-banner">
+        <div class="mrb-left">
+          <div class="mrb-av" id="mrb-av">U</div>
+          <div>
+            <div class="mrb-name" id="mrb-name">You</div>
+            <div class="mrb-sub" id="mrb-sub">Your ranking</div>
+          </div>
+        </div>
+        <div class="mrb-right">
+          <div class="mrb-stat">
+            <div class="mrb-stat-val" id="mrb-rank">—</div>
+            <div class="mrb-stat-lbl">Rank</div>
+          </div>
+          <div class="mrb-stat">
+            <div class="mrb-stat-val" id="mrb-contribs">0</div>
+            <div class="mrb-stat-lbl">Articles</div>
+          </div>
+          <div class="mrb-stat">
+            <div class="mrb-stat-val" id="mrb-words">0</div>
+            <div class="mrb-stat-lbl">Words</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Podium (top 3) -->
+      <div class="podium-wrap" id="podium-wrap" style="display:none">
+        <div class="podium" id="podium"></div>
+      </div>
+
+      <!-- Full table -->
+      <div class="rank-table" id="rank-table">
+        <div class="rt-header">
+          <span class="rth-rank">#</span>
+          <span>Contributor</span>
+          <span class="rth-num rth-cats">Articles</span>
+          <span class="rth-num rth-words">Words</span>
+          <span class="rth-num">Score</span>
+        </div>
+        <div id="rank-body">
+          <div class="state-msg">
+            <div class="spinner-ring"></div>
+            <p>Loading leaderboard…</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ── UI helpers (no imports) ── */
+(function(){
+  var sb   = document.getElementById('sidebar');
+  var ov   = document.getElementById('overlay');
+  var hbg  = document.getElementById('btn-hbg');
+  var cls  = document.getElementById('btn-close');
+  var uc   = document.getElementById('ucard');
+  var um   = document.getElementById('umenu');
+
+  function mob(){ return window.innerWidth<=768; }
+  hbg.onclick=function(){ mob()?(function(){ var o=!sb.classList.contains('sb-on'); sb.classList.toggle('sb-on',o); ov.classList.toggle('ov-on',o); })():sb.classList.toggle('sb-off'); };
+  function closeSB(){ sb.classList.remove('sb-on'); ov.classList.remove('ov-on'); }
+  cls.onclick=closeSB; ov.onclick=closeSB;
+  uc.onclick=function(e){ e.stopPropagation(); um.classList.toggle('open'); };
+  document.onclick=function(){ um.classList.remove('open'); };
+
+  function toast(msg){
+    var el=document.createElement('div'); el.className='toast'; el.textContent=msg;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(function(){ el.remove(); },2600);
+  }
+  window._toast=toast;
+})();
+</script>
+
+<script type="module">
+import { initializeApp }                         from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }  from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collectionGroup,
+         getDocs, query, where, orderBy,
+         Timestamp }                             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const app  = initializeApp({
+  apiKey:'AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU',
+  authDomain:'collective-ai-auth.firebaseapp.com',
+  projectId:'collective-ai-auth',
+  storageBucket:'collective-ai-auth.appspot.com',
+  messagingSenderId:'851370153534',
+  appId:'1:851370153534:web:484314623047fd110ca36f'
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* ── state ── */
+let me          = null;
+let allEntries  = [];   // raw Firestore docs: { userId, displayName, photoURL, title, category, wordCount, createdAt }
+let period      = 'all';
+let activeCat   = 'all';
+
+const CATEGORIES = [
+  'science','history','mathematics','health','business',
+  'arts','geography','programming','philosophy','other'
+];
+
+/* ── auth ── */
+onAuthStateChanged(auth, async user => {
+  if (!user){ location.href='app.html'; return; }
+  me = user;
+  setUserUI(user);
+  await load();
+});
+
+document.getElementById('btn-signout').addEventListener('click', async () => {
+  await signOut(auth); location.href='../index.html';
+});
+
+document.getElementById('btn-refresh').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-refresh');
+  btn.classList.add('spinning');
+  await load();
+  btn.classList.remove('spinning');
+  window._toast('Leaderboard refreshed');
+});
+
+function setUserUI(user){
+  const name = user.displayName || user.email.split('@')[0];
+  document.getElementById('uname').textContent  = name;
+  document.getElementById('uemail').textContent = user.email||'';
+  const av = document.getElementById('uav');
+  if(user.photoURL){ av.innerHTML=`<img src="${user.photoURL}" alt="">`; }
+  else{ av.textContent = name.charAt(0).toUpperCase(); }
+}
+
+/* ── load all public contributions via collectionGroup ── */
+async function load(){
+  showLoading();
+  try {
+    // collectionGroup('contributions') reads across ALL users' subcollections.
+    // Firestore rules must allow this — see note at bottom of file.
+    const snap = await getDocs(collectionGroup(db, 'contributions'));
+
+    allEntries = [];
+    snap.forEach(d => {
+      const data = d.data();
+      // Extract userId from path: users/{userId}/contributions/{id}
+      const pathParts = d.ref.path.split('/');
+      const userId = pathParts[1];
+      allEntries.push({
+        id:          d.id,
+        userId,
+        title:       data.title       || 'Untitled',
+        category:    data.category    || 'other',
+        wordCount:   data.wordCount   || 0,
+        createdAt:   data.createdAt,  // Firestore Timestamp
+        displayName: data.displayName || null,  // populated if user stored it
+        photoURL:    data.photoURL    || null,
+      });
+    });
+
+    buildCategoryFilter();
+    render();
+  } catch(e){
+    console.error('Leaderboard load error:', e);
+    document.getElementById('rank-body').innerHTML =
+      '<div class="state-msg"><p>Could not load leaderboard.<br>Check that collectionGroup rules are published.</p></div>';
+  }
+}
+
+/* ── period & category controls ── */
+window.setPeriod = function(p){
+  period = p;
+  ['all','month','week'].forEach(k => {
+    document.getElementById('pt-'+k).classList.toggle('active', k===p);
+  });
+  render();
+};
+
+window.setCat = function(cat){
+  activeCat = cat;
+  document.querySelectorAll('.cat-pill').forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === cat)
+  );
+  render();
+};
+
+function buildCategoryFilter(){
+  const present = new Set(allEntries.map(e => e.category));
+  const wrap = document.getElementById('cat-filter');
+  wrap.innerHTML = '<button class="cat-pill active" data-cat="all" onclick="setCat(\'all\')">All categories</button>';
+  CATEGORIES.forEach(cat => {
+    if(!present.has(cat)) return;
+    const label = cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' & ');
+    const btn = document.createElement('button');
+    btn.className = 'cat-pill';
+    btn.dataset.cat = cat;
+    btn.textContent = label;
+    btn.onclick = () => setCat(cat);
+    wrap.appendChild(btn);
+  });
+}
+
+/* ── filter entries by period and category ── */
+function filteredEntries(){
+  const now  = Date.now();
+  const cutoffs = {
+    all:   0,
+    month: now - 30 * 86400_000,
+    week:  now -  7 * 86400_000,
+  };
+  const cutoff = cutoffs[period];
+
+  return allEntries.filter(e => {
+    const ts = e.createdAt ? e.createdAt.seconds * 1000 : 0;
+    if(ts < cutoff) return false;
+    if(activeCat !== 'all' && e.category !== activeCat) return false;
+    return true;
+  });
+}
+
+/* ── aggregate entries into per-user scores ── */
+function aggregate(entries){
+  const map = new Map();
+  entries.forEach(e => {
+    if(!map.has(e.userId)){
+      map.set(e.userId, {
+        userId:      e.userId,
+        displayName: e.displayName,
+        photoURL:    e.photoURL,
+        contribs:    0,
+        words:       0,
+        categories:  new Set(),
+      });
+    }
+    const u = map.get(e.userId);
+    u.contribs++;
+    u.words += e.wordCount;
+    u.categories.add(e.category);
+  });
+
+  // Score = contributions * 10 + words * 0.01 + unique_categories * 5
+  const rows = Array.from(map.values()).map(u => ({
+    ...u,
+    categories: u.categories.size,
+    score: Math.round(u.contribs * 10 + u.words * 0.01 + u.categories.size * 5),
+  }));
+
+  rows.sort((a,b) => b.score - a.score || b.contribs - a.contribs);
+  return rows;
+}
+
+/* ── helpers ── */
+function fmtNum(n){
+  if(n >= 1_000_000) return (n/1_000_000).toFixed(1)+'M';
+  if(n >= 1_000)     return (n/1_000).toFixed(1)+'k';
+  return String(n);
+}
+
+function nameFor(row){
+  if(row.displayName) return row.displayName;
+  if(row.userId === me?.uid && me?.displayName) return me.displayName;
+  // Anonymise unknown users gracefully
+  return 'Contributor ' + row.userId.slice(0,6);
+}
+
+function avatarHTML(row, size, cls){
+  const name = nameFor(row);
+  const photo = row.userId === me?.uid ? me?.photoURL : row.photoURL;
+  if(photo) return `<div class="${cls}" style="width:${size}px;height:${size}px"><img src="${photo}" alt=""></div>`;
+  return `<div class="${cls}" style="width:${size}px;height:${size}px">${name.charAt(0).toUpperCase()}</div>`;
+}
+
+function rankClass(i){
+  if(i===0) return 'rr-rank top1';
+  if(i===1) return 'rr-rank top2';
+  if(i===2) return 'rr-rank top3';
+  return 'rr-rank';
+}
+function rankEmoji(i){
+  if(i===0) return '🥇';
+  if(i===1) return '🥈';
+  if(i===2) return '🥉';
+  return '';
+}
+function podRank(i){
+  if(i===0) return '🥈';
+  if(i===1) return '🥇';
+  if(i===2) return '🥉';
+  return '';
+}
+
+/* ── render ── */
+function render(){
+  const entries = filteredEntries();
+  const rows    = aggregate(entries);
+
+  // ── global stats ──
+  const allRows = aggregate(allEntries);
+  document.getElementById('gs-contributors').textContent = fmtNum(allRows.length);
+  document.getElementById('gs-articles').textContent     = fmtNum(allEntries.length);
+  const totalWords = allEntries.reduce((s,e) => s+e.wordCount, 0);
+  document.getElementById('gs-words').textContent        = fmtNum(totalWords);
+  const cats = new Set(allEntries.map(e => e.category));
+  document.getElementById('gs-categories').textContent   = cats.size;
+
+  // ── my rank banner ──
+  if(me){
+    const myIdx = rows.findIndex(r => r.userId === me.uid);
+    const banner = document.getElementById('my-rank-banner');
+    if(myIdx >= 0){
+      const myRow = rows[myIdx];
+      banner.classList.add('visible');
+      const mav = document.getElementById('mrb-av');
+      if(me.photoURL){ mav.innerHTML=`<img src="${me.photoURL}" alt="">`; }
+      else{ mav.textContent = (me.displayName||me.email||'U').charAt(0).toUpperCase(); }
+      document.getElementById('mrb-name').textContent    = me.displayName || me.email.split('@')[0];
+      document.getElementById('mrb-sub').textContent     = period==='all'?'All-time ranking':`${period==='month'?'Monthly':'Weekly'} ranking`;
+      document.getElementById('mrb-rank').textContent    = '#'+(myIdx+1);
+      document.getElementById('mrb-contribs').textContent= myRow.contribs;
+      document.getElementById('mrb-words').textContent   = fmtNum(myRow.words);
+    } else {
+      banner.classList.remove('visible');
+    }
+  }
+
+  // ── podium (top 3) ──
+  const podiumWrap = document.getElementById('podium-wrap');
+  const podiumEl   = document.getElementById('podium');
+  if(rows.length >= 3){
+    podiumWrap.style.display = '';
+    // Display order: 2nd, 1st, 3rd
+    const order = [rows[1], rows[0], rows[2]];
+    podiumEl.innerHTML = order.map((row,i) => {
+      const name  = nameFor(row);
+      const photo = row.userId === me?.uid ? me?.photoURL : row.photoURL;
+      const avHTML = photo
+        ? `<div class="pod-avatar"><img src="${photo}" alt=""></div>`
+        : `<div class="pod-avatar">${name.charAt(0).toUpperCase()}</div>`;
+      return `
+        <div class="pod">
+          <div class="pod-platform">
+            <span class="pod-rank">${podRank(i)}</span>
+            ${avHTML}
+          </div>
+          <div class="pod-info">
+            <div class="pod-name">${esc(name)}</div>
+            <div class="pod-count">${row.contribs} articles · ${fmtNum(row.words)}w</div>
+          </div>
+        </div>`;
+    }).join('');
+  } else {
+    podiumWrap.style.display = 'none';
+  }
+
+  // ── rank table ──
+  const body = document.getElementById('rank-body');
+  if(rows.length === 0){
+    body.innerHTML = `<div class="state-msg">
+      <svg width="36" height="36" viewBox="0 0 256 256" fill="currentColor"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16H48V152a16,16,0,0,1,16-16H96a16,16,0,0,1,16,16v48h16V104a16,16,0,0,1,16-16h32a16,16,0,0,1,16,16V200h16a8,8,0,0,1,0,16ZM64,200H96V152H64Zm80,0h32V104H144Z"/></svg>
+      <p>No contributions ${period!=='all'?'in this period':''} yet.<br>
+      <a href="contribution.html" style="color:var(--accent)">Be the first to contribute!</a></p>
+    </div>`;
+    return;
+  }
+
+  body.innerHTML = rows.slice(0, 100).map((row, i) => {
+    const name   = nameFor(row);
+    const isMe   = row.userId === me?.uid;
+    const photo  = isMe ? me?.photoURL : row.photoURL;
+    const avHTML = photo
+      ? `<div class="rr-av"><img src="${photo}" alt=""></div>`
+      : `<div class="rr-av">${name.charAt(0).toUpperCase()}</div>`;
+    const badge  = isMe ? '<span class="rr-badge badge-you">You</span>' : '';
+    const emoji  = rankEmoji(i);
+
+    return `<div class="rt-row${isMe?' is-me':''}">
+      <div class="${rankClass(i)}">${emoji||'#'+(i+1)}</div>
+      <div class="rr-user">
+        ${avHTML}
+        <span class="rr-name">${esc(name)}</span>
+        ${badge}
+      </div>
+      <div class="rr-num rr-num cats${i<3?' hi':''}">${row.contribs}</div>
+      <div class="rr-num rr-num words">${fmtNum(row.words)}</div>
+      <div class="rr-num${i<3?' hi':''}">${fmtNum(row.score)}</div>
+    </div>`;
+  }).join('');
+}
+
+function showLoading(){
+  document.getElementById('rank-body').innerHTML =
+    '<div class="state-msg"><div class="spinner-ring"></div><p>Loading leaderboard…</p></div>';
+  document.getElementById('podium-wrap').style.display='none';
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
