@@ -730,7 +730,7 @@ window._ui={
 <script type="module">
 import { initializeApp }                         from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }  from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc,
+import { getFirestore, collection, doc, addDoc, setDoc,
          getDocs, deleteDoc, serverTimestamp,
          query, orderBy }                        from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getStorage, ref as sRef, uploadString,
@@ -878,6 +878,19 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
     }
 
     const ref = await addDoc(contribCol(), firestoreDoc);
+
+    // Mirror a lightweight summary to the top-level /contributions/{id} collection.
+    // The leaderboard reads this flat public-readable collection with a simple
+    // getDocs() — no collectionGroup index, no wildcard security rules needed.
+    await setDoc(doc(db, 'contributions', ref.id), {
+      userId:      me.uid,
+      displayName: me.displayName || me.email.split('@')[0] || null,
+      photoURL:    me.photoURL    || null,
+      title:       firestoreDoc.title,
+      category:    firestoreDoc.category,
+      wordCount:   firestoreDoc.wordCount,
+      createdAt:   firestoreDoc.createdAt,
+    });
 
     // Send to backend for ChromaDB embedding (best-effort)
     try {
