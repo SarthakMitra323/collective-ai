@@ -352,9 +352,8 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 <script type="module">
 import { initializeApp }                         from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }  from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collectionGroup,
-         getDocs, query, where, orderBy,
-         Timestamp }                             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, collection,
+         getDocs }                               from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const app  = initializeApp({
   apiKey:'AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU',
@@ -407,28 +406,26 @@ function setUserUI(user){
   else{ av.textContent = name.charAt(0).toUpperCase(); }
 }
 
-/* ── load all public contributions via collectionGroup ── */
+/* ── load from flat top-level /contributions collection ── */
 async function load(){
   showLoading();
   try {
-    // collectionGroup('contributions') reads across ALL users' subcollections.
-    // Firestore rules must allow this — see note at bottom of file.
-    const snap = await getDocs(collectionGroup(db, 'contributions'));
+    // Query the flat top-level /contributions collection that contribution.html
+    // mirrors to on every submit. Any signed-in user can read this with a
+    // simple getDocs() — no collectionGroup index or wildcard rules needed.
+    const snap = await getDocs(collection(db, 'contributions'));
 
     allEntries = [];
     snap.forEach(d => {
       const data = d.data();
-      // Extract userId from path: users/{userId}/contributions/{id}
-      const pathParts = d.ref.path.split('/');
-      const userId = pathParts[1];
       allEntries.push({
         id:          d.id,
-        userId,
+        userId:      data.userId      || 'unknown',
         title:       data.title       || 'Untitled',
         category:    data.category    || 'other',
         wordCount:   data.wordCount   || 0,
-        createdAt:   data.createdAt,  // Firestore Timestamp
-        displayName: data.displayName || null,  // populated if user stored it
+        createdAt:   data.createdAt,
+        displayName: data.displayName || null,
         photoURL:    data.photoURL    || null,
       });
     });
@@ -438,7 +435,7 @@ async function load(){
   } catch(e){
     console.error('Leaderboard load error:', e);
     document.getElementById('rank-body').innerHTML =
-      '<div class="state-msg"><p>Could not load leaderboard.<br>Check that collectionGroup rules are published.</p></div>';
+      '<div class="state-msg"><p>Could not load leaderboard — ' + (e.message||'permission denied') + '</p></div>';
   }
 }
 
