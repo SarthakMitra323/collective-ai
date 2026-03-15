@@ -859,6 +859,10 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
       codeBlocks,                       // array of {language, code}
       source: source || null,
       userId: me.uid,
+      // Store author identity so the leaderboard can show names/avatars
+      // without a separate users collection query
+      displayName: me.displayName || me.email.split('@')[0] || null,
+      photoURL:    me.photoURL    || null,
       createdAt: serverTimestamp(),
       wordCount: content.trim().split(/\s+/).filter(Boolean).length,
       contentPreview: content.substring(0, 300), // first 300 chars for list view
