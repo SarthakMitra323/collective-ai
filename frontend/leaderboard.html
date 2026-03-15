@@ -532,18 +532,22 @@ function fmtNum(n){
 }
 
 function nameFor(row){
+  // displayName is now stored on every contribution doc.
+  // Fall back gracefully for docs submitted before this fix.
   if(row.displayName) return row.displayName;
-  if(row.userId === me?.uid && me?.displayName) return me.displayName;
-  // Anonymise unknown users gracefully
-  return 'Contributor ' + row.userId.slice(0,6);
+  if(row.userId === me?.uid){
+    return me.displayName || me.email.split('@')[0] || 'You';
+  }
+  return 'Contributor ' + row.userId.slice(0, 6);
 }
 
-function avatarHTML(row, size, cls){
-  const name = nameFor(row);
-  const photo = row.userId === me?.uid ? me?.photoURL : row.photoURL;
-  if(photo) return `<div class="${cls}" style="width:${size}px;height:${size}px"><img src="${photo}" alt=""></div>`;
-  return `<div class="${cls}" style="width:${size}px;height:${size}px">${name.charAt(0).toUpperCase()}</div>`;
+function photoFor(row){
+  // photoURL is stored on contribution docs. For the current user
+  // prefer the live auth value in case they updated their profile pic.
+  if(row.userId === me?.uid) return me?.photoURL || row.photoURL || null;
+  return row.photoURL || null;
 }
+
 
 function rankClass(i){
   if(i===0) return 'rr-rank top1';
@@ -607,7 +611,7 @@ function render(){
     const order = [rows[1], rows[0], rows[2]];
     podiumEl.innerHTML = order.map((row,i) => {
       const name  = nameFor(row);
-      const photo = row.userId === me?.uid ? me?.photoURL : row.photoURL;
+      const photo = photoFor(row);
       const avHTML = photo
         ? `<div class="pod-avatar"><img src="${photo}" alt=""></div>`
         : `<div class="pod-avatar">${name.charAt(0).toUpperCase()}</div>`;
@@ -641,7 +645,7 @@ function render(){
   body.innerHTML = rows.slice(0, 100).map((row, i) => {
     const name   = nameFor(row);
     const isMe   = row.userId === me?.uid;
-    const photo  = isMe ? me?.photoURL : row.photoURL;
+    const photo  = photoFor(row);
     const avHTML = photo
       ? `<div class="rr-av"><img src="${photo}" alt=""></div>`
       : `<div class="rr-av">${name.charAt(0).toUpperCase()}</div>`;
