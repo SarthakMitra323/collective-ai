@@ -119,31 +119,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Each user owns their own subtree
+    // Private user data — owner only
     match /users/{userId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
-
-      // Chat sessions
+      allow read, write: if request.auth != null && request.auth.uid == userId;
       match /sessions/{sessionId} {
-        allow read, write: if request.auth != null
-                           && request.auth.uid == userId;
-
-        // Messages within a session
+        allow read, write: if request.auth != null && request.auth.uid == userId;
         match /messages/{messageId} {
-          allow read, write: if request.auth != null
-                             && request.auth.uid == userId;
+          allow read, write: if request.auth != null && request.auth.uid == userId;
         }
       }
-
-      // Knowledge contributions (metadata + inline content)
       match /contributions/{contributionId} {
-        allow read, write: if request.auth != null
-                           && request.auth.uid == userId;
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Block everything else
+    // ★ NEW — public leaderboard summaries (no content, just metadata)
+    match /contributions/{contributionId} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
