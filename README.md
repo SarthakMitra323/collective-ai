@@ -69,30 +69,6 @@ User asks a question
 
 ---
 
-## Project Structure
-
-```
-collective-ai/
-├── server.py               # FastAPI app — /api/chat, /api/contribute endpoints
-├── LLM.py                  # Optional TinyLlama fine-tuning pipeline
-├── requirements.txt        # Python dependencies
-├── render.yaml             # Render deployment config (backend)
-├── vercel.json             # Vercel deployment config (frontend)
-│
-├── index.html              # Landing / home page
-├── app.html                # Sign-in / sign-up (Firebase Auth)
-├── dashboard.html          # Main chat interface
-├── contribution.html       # Knowledge submission form
-├── leaderboard.html        # Top contributors
-├── terms.html              # Terms of Service
-├── privacy.html            # Privacy Policy
-│
-└── images/
-    └── Logo-favicon.png
-```
-
----
-
 ## Getting Started
 
 ### Prerequisites
