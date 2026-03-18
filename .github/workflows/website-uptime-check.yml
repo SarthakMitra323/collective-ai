@@ -1,0 +1,27 @@
+name: Website Uptime Check
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check-website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check website status
+        run: |
+          URL="https://collective-ai.vercel.app"
+          HTTP_CODE=$(curl -sS -L -o /dev/null -w "%{http_code}" "$URL")
+
+          echo "Checked $URL"
+          echo "HTTP status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 400 ]; then
+            echo "Website is live."
+          else
+            echo "Website is down or unhealthy (HTTP $HTTP_CODE)."
+            exit 1
+          fi
