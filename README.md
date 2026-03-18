@@ -309,6 +309,8 @@ Please follow [Conventional Commits](https://www.conventionalcommits.org/) for c
 | 📋 Planned | Docker support |
 | 📋 Planned | Rate limiting |
 
+Known issues - [Backend Deployment Issue](## ⚠️ **Deployment Issue Notice**)
+
 ---
 
 ## License
@@ -326,6 +328,12 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 - [Sora](https://fonts.google.com/specimen/Sora) & [JetBrains Mono](https://www.jetbrains.com/lp/mono/) for the typefaces
 
 ---
+
+## ⚠️ **Deployment Issue Notice**
+
+We have encountered a critical issue with deploying our backend services. As a result, the AI functionality is currently unavailable.
+
+We are actively working to resolve this problem and would greatly appreciate your patience and cooperation during this time.
 
 <div align="center">
 
