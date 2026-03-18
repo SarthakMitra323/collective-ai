@@ -309,7 +309,7 @@ Please follow [Conventional Commits](https://www.conventionalcommits.org/) for c
 | 📋 Planned | Docker support |
 | 📋 Planned | Rate limiting |
 
-Known issues - [Backend Deployment Issue](## ⚠️ **Deployment Issue Notice**)
+Known issues - [Backend Deployment Issue](#%EF%B8%8F-deployment-issue-notice)
 
 ---
 
