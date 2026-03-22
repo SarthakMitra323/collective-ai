@@ -5,79 +5,88 @@ from pydantic import BaseModel
 import uvicorn
 from LLM import CollectiveModel
 from rag import KnowledgeBase
-
+ 
 app = FastAPI(title="Collective AI Backend")
-
-origin = os.environ.get("ALLOWED_ORIGIN", "*")
-
+ 
+# ALLOWED_ORIGIN env var set in Render dashboard / render.yaml
+# Defaults to your Vercel domain — update before deploying
+origin = os.environ.get("ALLOWED_ORIGIN", "https://collective-ai.vercel.app")
+ 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin], 
+    allow_origins=[origin, "http://localhost:3000", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-print(f"CORS Security: Allowing access from {origin}")
-
-# --- Initialize Systems ---
-print("Booting up Neural Core & Memory...")
-# Note: On Render free tier, boot might take 1-2 minutes.
-ai_engine = CollectiveModel()
+ 
+print(f"CORS: Allowing requests from {origin}")
+ 
+# ── Initialize Systems ──
+print("Booting Neural Core & Memory…")
+ai_engine     = CollectiveModel()
 knowledge_base = KnowledgeBase()
 print("Collective AI Online")
-
-# --- Schemas ---
+ 
+# ── Schemas ──
 class ChatRequest(BaseModel):
-    message: str
+    message:   str
     sessionId: str | None = None
-    userId: str | None = None
-
+    userId:    str | None = None
+ 
 class ContributionRequest(BaseModel):
-    text: str
-    userId: str | None = None
-
+    id:       str | None = None
+    title:    str | None = None
+    category: str | None = None
+    content:  str
+    tags:     list[str] | None = None
+    userId:   str | None = None
+    mode:     str | None = None
+ 
+# ── Routes ──
 @app.get("/")
 def home():
-    return {"status": "Collective AI Server Running", "docs_url": "/docs"}
-
+    return {"status": "Collective AI running", "docs": "/docs"}
+ 
+@app.get("/health")
+def health():
+    """Used by uptime.html to check backend status."""
+    return {"status": "ok"}
+ 
 @app.post("/api/contribute")
 async def contribute_endpoint(request: ContributionRequest):
-    if not request.text:
+    if not request.content:
         raise HTTPException(status_code=400, detail="Content cannot be empty")
-    
-    print(f"Incoming Contribution from User: {request.userId}")
-    success = knowledge_base.add_document(request.text, user_id=request.userId or "anon")
-    
+ 
+    print(f"Contribution from user: {request.userId}")
+    success = knowledge_base.add_document(
+        request.content,
+        user_id=request.userId or "anon",
+        source=request.title or "contribution"
+    )
+ 
     if success:
-        return {"status": "success", "message": "Knowledge assimilated into the Collective."}
-    else:
-        raise HTTPException(status_code=400, detail="Content too short or invalid")
-
+        return {"status": "success", "message": "Knowledge added to Collective."}
+    raise HTTPException(status_code=400, detail="Content too short or invalid")
+ 
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
     if not request.message:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
-    
-    print(f"Chat Request: {request.message} (Session: {request.sessionId})")
-    
+ 
+    print(f"Chat: {request.message[:60]}… (session: {request.sessionId})")
+ 
     try:
-        # 1. Retrieve relevant context from Vector DB
-        context_docs = knowledge_base.search(request.message, n_results=2)
-        if context_docs:
-            print(f"   Found {len(context_docs)} context fragments")
-
-        # 2. Generate response with context
+        context_docs  = knowledge_base.search(request.message, n_results=2)
         response_text = ai_engine.generate_response(request.message, context_docs)
-        print("Response generated")
-        
         return {"reply": response_text}
     except Exception as e:
-        print(f"Server Error: {e}")
+        print(f"Server error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
+ 
+# ── Local dev only ──
 if __name__ == "__main__":
-    # Render automatically sets PORT.
-    port = int(os.environ.get("PORT", 3000))
-    print(f"Starting Server on port {port}...")
+    port = int(os.environ.get("PORT", 8000))   # fixed: was 3000
+    print(f"Starting on port {port}…")
     uvicorn.run(app, host="0.0.0.0", port=port)
+    
