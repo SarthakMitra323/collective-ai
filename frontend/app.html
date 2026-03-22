@@ -5,14 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign In | Collective AI</title>
 <link rel="icon" href="images/Logo-favicon.png" type="image/png">
-  <!-- Clarity Installation -->
-    <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "vyqjhyxzk2");
-    </script>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -462,8 +454,8 @@ html, body {
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab active" id="tab-in"  onclick="switchTab('in')">Sign In</button>
-      <button class="tab"        id="tab-up"  onclick="switchTab('up')">Create Account</button>
+      <button class="tab active" id="tab-in">Sign In</button>
+      <button class="tab"        id="tab-up">Create Account</button>
     </div>
 
     <!-- Error banner (shared) -->
@@ -497,13 +489,13 @@ html, body {
           <label for="in-pw">Password</label>
           <div class="pw-wrap">
             <input type="password" id="in-pw" placeholder="Your password" autocomplete="current-password">
-            <button class="pw-toggle" onclick="togglePw('in-pw', this)" tabindex="-1">
+            <button class="pw-toggle" data-target="in-pw" tabindex="-1">
               <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor" id="eye-in"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
             </button>
           </div>
         </div>
-        <div class="forgot"><a onclick="handleForgot()">Forgot password?</a></div>
-        <button class="btn-submit" id="btn-submit-in" onclick="handleEmailSignIn()">
+        <div class="forgot"><a id="btn-forgot" style="cursor:pointer">Forgot password?</a></div>
+        <button class="btn-submit" id="btn-submit-in">
           <span class="btn-text">Sign In</span>
           <div class="spin"></div>
         </button>
@@ -542,12 +534,12 @@ html, body {
           <label for="up-pw">Password</label>
           <div class="pw-wrap">
             <input type="password" id="up-pw" placeholder="At least 8 characters" autocomplete="new-password">
-            <button class="pw-toggle" onclick="togglePw('up-pw', this)" tabindex="-1">
+            <button class="pw-toggle" data-target="up-pw" tabindex="-1">
               <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
             </button>
           </div>
         </div>
-        <button class="btn-submit" id="btn-submit-up" onclick="handleEmailSignUp()">
+        <button class="btn-submit" id="btn-submit-up">
           <span class="btn-text">Create Account</span>
           <div class="spin"></div>
         </button>
@@ -557,46 +549,41 @@ html, body {
 
     <!-- Footer -->
     <div class="footer">
-      By continuing you agree to our <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>
-      &copy; Sarthak Mitra. 
+      By continuing you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
     </div>
 
   </div><!-- /card -->
 </div><!-- /page -->
 
 <script type="module">
-import { initializeApp }                          from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { initializeApp }             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged,
          signInWithPopup, GoogleAuthProvider,
          signInWithEmailAndPassword,
          createUserWithEmailAndPassword,
          updateProfile,
-         sendPasswordResetEmail }                 from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+         sendPasswordResetEmail }    from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-const app  = initializeApp({
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+// ── Firebase init ──
+const fbApp = initializeApp({
+  apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
+  authDomain:        "collective-ai-auth.firebaseapp.com",
+  projectId:         "collective-ai-auth",
+  storageBucket:     "collective-ai-auth.firebasestorage.app",
+  messagingSenderId: "851370153534",
+  appId:             "1:851370153534:web:484314623047fd110ca36f",
+  measurementId:     "G-H1362YWCJB"
 });
-const auth  = getAuth(app);
+const auth  = getAuth(fbApp);
 const gProv = new GoogleAuthProvider();
-
-// Already signed in → redirect
-onAuthStateChanged(auth, user => {
-  if (user) location.href = 'dashboard.html';
-});
 
 // ── Helpers ──
 function showErr(msg) {
   const el = document.getElementById('err');
-  el.style.background = '';
+  el.style.background  = '';
   el.style.borderColor = '';
-  el.style.color = '';
-  el.textContent = msg;
+  el.style.color       = '';
+  el.textContent       = msg;
   el.classList.add('show');
 }
 function clearErr() {
@@ -616,9 +603,38 @@ function fbErr(code) {
     'auth/email-already-in-use': 'An account with this email already exists.',
     'auth/weak-password':        'Password must be at least 6 characters.',
     'auth/popup-closed-by-user': 'Sign-in popup was closed.',
+    'auth/too-many-requests':    'Too many attempts. Please wait a few minutes.',
   };
   return map[code] || 'Something went wrong. Please try again.';
 }
+
+// ── Tab switch ── (moved here so it's always ready)
+function switchTab(tab) {
+  document.getElementById('tab-in').classList.toggle('active', tab === 'in');
+  document.getElementById('tab-up').classList.toggle('active', tab === 'up');
+  document.getElementById('panel-in').classList.toggle('active', tab === 'in');
+  document.getElementById('panel-up').classList.toggle('active', tab === 'up');
+  const err = document.getElementById('err');
+  err.classList.remove('show');
+  err.style.background = err.style.borderColor = err.style.color = '';
+  document.querySelector('.heading h1').textContent = tab === 'in' ? 'Welcome back'       : 'Create account';
+  document.querySelector('.heading p').textContent  = tab === 'in' ? 'Sign in to continue your conversations' : 'Join the collective and start contributing';
+}
+
+// ── Password toggle ──
+function togglePw(inputId, btn) {
+  const inp  = document.getElementById(inputId);
+  const show = inp.type === 'password';
+  inp.type   = show ? 'text' : 'password';
+  btn.innerHTML = show
+    ? `<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M53.92,34.62A8,8,0,1,0,42.08,45.38L61.32,66.55C37,80.58,19.14,102.74,11.56,128c9.23,34.49,40.6,60,76.44,60a85.63,85.63,0,0,0,41.65-10.76l19.38,21.52a8,8,0,1,0,11.84-10.76Zm59.55,109.42-52.8-58.67A69.36,69.36,0,0,1,88,128a72,72,0,0,1,1,12.14ZM128,192c-33.28,0-64.36-22.79-74.06-56a100.71,100.71,0,0,1,25.08-39.29l15,16.64A71.92,71.92,0,0,0,56,128a72.08,72.08,0,0,0,72,72,71.14,71.14,0,0,0,17.07-2.07l13.58,15.08A69.36,69.36,0,0,1,128,192Zm116.44-64c-9.23,34.49-40.6,60-76.44,60a85.88,85.88,0,0,1-19-2.12l-13.74-15.27A69.7,69.7,0,0,0,160,128a72.08,72.08,0,0,0-72-72,71.55,71.55,0,0,0-30.12,6.63L43.11,46.93a100.8,100.8,0,0,1,84.89-2.93C163.4,52,190.49,73.29,202.06,104H200a8,8,0,0,0,0,16h16a8.08,8.08,0,0,0,8-8A101,101,0,0,0,224,100h0A8,8,0,0,0,224,84H209.23C196.46,52.27,163.07,26.12,128,24a103.82,103.82,0,0,0-60.36,19L53.92,34.62A8,8,0,1,0,42.08,45.38L202.06,224a8,8,0,1,0,11.84-10.76L198.72,196.8A101.4,101.4,0,0,0,224,128a8,8,0,0,0-8-8h-.56Z"/></svg>`
+    : `<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>`;
+}
+
+// ── Auth state ──
+onAuthStateChanged(auth, user => {
+  if (user) location.href = 'dashboard.html';
+});
 
 // ── Google OAuth ──
 async function oauthSignIn() {
@@ -630,11 +646,9 @@ async function oauthSignIn() {
     showErr(fbErr(e.code));
   }
 }
-document.getElementById('btn-google-in').onclick = oauthSignIn;
-document.getElementById('btn-google-up').onclick = oauthSignIn;
 
-// ── Email Sign In ──
-window.handleEmailSignIn = async function() {
+// ── Email sign in ──
+async function emailSignIn() {
   clearErr();
   const email = document.getElementById('in-email').value.trim();
   const pw    = document.getElementById('in-pw').value;
@@ -647,16 +661,16 @@ window.handleEmailSignIn = async function() {
     showErr(fbErr(e.code));
     setLoading('btn-submit-in', false);
   }
-};
+}
 
-// ── Email Sign Up ──
-window.handleEmailSignUp = async function() {
+// ── Email sign up ──
+async function emailSignUp() {
   clearErr();
   const name  = document.getElementById('up-name').value.trim();
   const email = document.getElementById('up-email').value.trim();
   const pw    = document.getElementById('up-pw').value;
-  if (!name)        { showErr('Please enter your name.'); return; }
-  if (!email)       { showErr('Please enter your email.'); return; }
+  if (!name)        { showErr('Please enter your name.');                return; }
+  if (!email)       { showErr('Please enter your email.');               return; }
   if (pw.length < 6){ showErr('Password must be at least 6 characters.'); return; }
   setLoading('btn-submit-up', true);
   try {
@@ -667,23 +681,19 @@ window.handleEmailSignUp = async function() {
     showErr(fbErr(e.code));
     setLoading('btn-submit-up', false);
   }
-};
+}
 
 // ── Forgot password ──
-window.handleForgot = async function() {
+async function forgotPassword() {
   clearErr();
   const email = document.getElementById('in-email').value.trim();
   if (!email) { showErr('Enter your email address in the field above first.'); return; }
-
-  // Show a loading state on the link so the user knows something is happening
-  const link = document.querySelector('.forgot a');
-  const origText = link.textContent;
+  const link = document.getElementById('btn-forgot');
+  const orig = link.textContent;
   link.textContent = 'Sending…';
   link.style.pointerEvents = 'none';
-
   try {
     await sendPasswordResetEmail(auth, email);
-    // Success — show confirmation in accent colour
     const el = document.getElementById('err');
     el.style.background  = 'rgba(99,102,241,.1)';
     el.style.borderColor = 'rgba(99,102,241,.25)';
@@ -691,57 +701,41 @@ window.handleForgot = async function() {
     el.textContent       = '✓ Reset link sent — check your inbox (and spam folder).';
     el.classList.add('show');
   } catch (e) {
-    // Log the real code so it's visible in DevTools if diagnosis is needed
-    console.error('[handleForgot] Firebase error:', e.code, e.message);
+    console.error('[forgotPassword]', e.code, e.message);
     const msgs = {
-      'auth/user-not-found':  'No account exists with that email address.',
-      'auth/invalid-email':   'That doesn\'t look like a valid email address.',
-      'auth/missing-email':   'Please enter your email address first.',
-      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+      'auth/user-not-found':    'No account exists with that email address.',
+      'auth/invalid-email':     "That doesn't look like a valid email address.",
+      'auth/missing-email':     'Please enter your email address first.',
+      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes.',
     };
-    showErr(msgs[e.code] || `Reset failed (${e.code}). Check the browser console for details.`);
+    showErr(msgs[e.code] || `Reset failed (${e.code}).`);
   } finally {
-    link.textContent = origText;
+    link.textContent = orig;
     link.style.pointerEvents = '';
   }
-};
+}
 
-// ── Enter key submits ──
+// ── Wire up all events here — no inline onclick needed ──
+document.getElementById('tab-in').addEventListener('click',       () => switchTab('in'));
+document.getElementById('tab-up').addEventListener('click',       () => switchTab('up'));
+document.getElementById('btn-google-in').addEventListener('click', oauthSignIn);
+document.getElementById('btn-google-up').addEventListener('click', oauthSignIn);
+document.getElementById('btn-submit-in').addEventListener('click', emailSignIn);
+document.getElementById('btn-submit-up').addEventListener('click', emailSignUp);
+document.getElementById('btn-forgot').addEventListener('click',    forgotPassword);
+
 document.getElementById('in-pw').addEventListener('keydown', e => {
-  if (e.key === 'Enter') window.handleEmailSignIn();
+  if (e.key === 'Enter') emailSignIn();
 });
 document.getElementById('up-pw').addEventListener('keydown', e => {
-  if (e.key === 'Enter') window.handleEmailSignUp();
+  if (e.key === 'Enter') emailSignUp();
 });
-</script>
 
-<script>
-// ── Tab switch ──
-window.switchTab = function(tab) {
-  document.getElementById('tab-in').classList.toggle('active', tab === 'in');
-  document.getElementById('tab-up').classList.toggle('active', tab === 'up');
-  document.getElementById('panel-in').classList.toggle('active', tab === 'in');
-  document.getElementById('panel-up').classList.toggle('active', tab === 'up');
-  document.getElementById('err').classList.remove('show');
-  // Reset error styling on tab switch
-  const err = document.getElementById('err');
-  err.style.background = '';
-  err.style.borderColor = '';
-  err.style.color = '';
-  // Update heading
-  document.querySelector('.heading h1').textContent = tab === 'in' ? 'Welcome back' : 'Create account';
-  document.querySelector('.heading p').textContent  = tab === 'in' ? 'Sign in to continue your conversations' : 'Join the collective and start contributing';
-};
-
-// ── Password toggle ──
-window.togglePw = function(inputId, btn) {
-  const inp = document.getElementById(inputId);
-  const show = inp.type === 'password';
-  inp.type = show ? 'text' : 'password';
-  btn.innerHTML = show
-    ? '<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M53.92,34.62A8,8,0,1,0,42.08,45.38L61.32,66.55C37,80.58,19.14,102.74,11.56,128c9.23,34.49,40.6,60,76.44,60a85.63,85.63,0,0,0,41.65-10.76l19.38,21.52a8,8,0,1,0,11.84-10.76Zm59.55,109.42-52.8-58.67A69.36,69.36,0,0,1,88,128a72,72,0,0,1,1,12.14ZM128,192c-33.28,0-64.36-22.79-74.06-56a100.71,100.71,0,0,1,25.08-39.29l15,16.64A71.92,71.92,0,0,0,56,128a72.08,72.08,0,0,0,72,72,71.14,71.14,0,0,0,17.07-2.07l13.58,15.08A69.36,69.36,0,0,1,128,192Zm116.44-64c-9.23,34.49-40.6,60-76.44,60a85.88,85.88,0,0,1-19-2.12l-13.74-15.27A69.7,69.7,0,0,0,160,128a72.08,72.08,0,0,0-72-72,71.55,71.55,0,0,0-30.12,6.63L43.11,46.93a100.8,100.8,0,0,1,84.89-2.93C163.4,52,190.49,73.29,202.06,104H200a8,8,0,0,0,0,16h16a8.08,8.08,0,0,0,8-8A101,101,0,0,0,224,100h0A8,8,0,0,0,224,84H209.23C196.46,52.27,163.07,26.12,128,24a103.82,103.82,0,0,0-60.36,19L53.92,34.62A8,8,0,1,0,42.08,45.38L202.06,224a8,8,0,1,0,11.84-10.76L198.72,196.8A101.4,101.4,0,0,0,224,128a8,8,0,0,0-8-8h-.56Z"/></svg>'
-    : '<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>';
-};
+// Password toggle buttons — wire by data-target attribute
+document.querySelectorAll('.pw-toggle[data-target]').forEach(btn => {
+  btn.addEventListener('click', () => togglePw(btn.dataset.target, btn));
+});
 </script>
 </body>
 </html>
+
