@@ -1,7 +1,4 @@
 {
-  "buildCommand": "echo 'Static site — no build step'",
-  "outputDirectory": ".",
-  "installCommand": "echo 'No install needed'",
   "rewrites": [
     {
       "source": "/app",
@@ -24,16 +21,16 @@
       "destination": "/frontend/uptime.html"
     },
     {
+      "source": "/status",
+      "destination": "/frontend/uptime.html"
+    },
+    {
       "source": "/terms",
       "destination": "/frontend/terms.html"
     },
     {
       "source": "/privacy",
       "destination": "/frontend/privacy.html"
-    },
-    {
-      "source": "/status",
-      "destination": "/frontend/uptime.html"
     }
   ],
   "routes": [
