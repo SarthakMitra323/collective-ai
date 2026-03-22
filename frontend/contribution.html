@@ -736,15 +736,18 @@ import { getFirestore, collection, doc, addDoc, setDoc,
 import { getStorage, ref as sRef, uploadString,
          getDownloadURL, deleteObject }          from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BACKEND = location.hostname === 'localhost'
+  ? 'http://localhost:8000'
+  : 'https://collective-ai-backend.onrender.com';
 
 const app  = initializeApp({
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
+  authDomain:        "collective-ai-auth.firebaseapp.com",
+  projectId:         "collective-ai-auth",
+  storageBucket:     "collective-ai-auth.firebasestorage.app",
+  messagingSenderId: "851370153534",
+  appId:             "1:851370153534:web:484314623047fd110ca36f",
+  measurementId:     "G-H1362YWCJB"
 });
 const auth    = getAuth(app);
 const db      = getFirestore(app);
@@ -890,7 +893,7 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
       createdAt:   firestoreDoc.createdAt,
     });
 
-    
+    // Send to backend for ChromaDB embedding (best-effort)
     try {
       await fetch(`${BACKEND}/api/contribute`, {
         method: 'POST',
@@ -920,4 +923,3 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
 </script>
 </body>
 </html>
-
