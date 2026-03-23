@@ -373,6 +373,42 @@ html, body {
 }
 .err.show { display: block; }
 
+/* ── RESET PANEL ── */
+#panel-reset { display: none; }
+#panel-reset.active { display: block; }
+.reset-success {
+  text-align: center;
+  padding: 12px 0 4px;
+}
+.reset-success svg {
+  display: block;
+  margin: 0 auto 14px;
+  color: var(--accent);
+}
+.reset-success h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.reset-success p {
+  font-size: .82rem;
+  color: var(--sub);
+  line-height: 1.6;
+}
+.pw-strength {
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 6px;
+  background: var(--border);
+  overflow: hidden;
+}
+.pw-strength-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .3s, background .3s;
+  width: 0%;
+}
+
 /* ── SWITCH LINK ── */
 .switch {
   text-align: center;
@@ -547,9 +583,61 @@ html, body {
 
     </div><!-- /panel-up -->
 
+    <!-- ── RESET PASSWORD PANEL ── -->
+    <div id="panel-reset">
+      <!-- shown while verifying the oobCode -->
+      <div id="reset-verifying" style="text-align:center;padding:20px 0;color:var(--sub);font-size:.85rem;">
+        <div class="spin" style="display:block;margin:0 auto 12px;width:20px;height:20px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite"></div>
+        Verifying reset link…
+      </div>
+
+      <!-- shown when oobCode is valid -->
+      <div id="reset-form" style="display:none">
+        <div class="field">
+          <label for="new-pw">New password</label>
+          <div class="pw-wrap">
+            <input type="password" id="new-pw" placeholder="At least 8 characters" autocomplete="new-password">
+            <button class="pw-toggle" data-target="new-pw" tabindex="-1">
+              <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
+            </button>
+          </div>
+          <div class="pw-strength"><div class="pw-strength-bar" id="pw-strength-bar"></div></div>
+        </div>
+        <div class="field">
+          <label for="new-pw2">Confirm new password</label>
+          <div class="pw-wrap">
+            <input type="password" id="new-pw2" placeholder="Repeat your new password" autocomplete="new-password">
+            <button class="pw-toggle" data-target="new-pw2" tabindex="-1">
+              <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
+            </button>
+          </div>
+        </div>
+        <button class="btn-submit" id="btn-set-pw" style="margin-top:8px">
+          <span class="btn-text">Set New Password</span>
+          <div class="spin"></div>
+        </button>
+      </div>
+
+      <!-- shown after successful reset -->
+      <div id="reset-done" style="display:none" class="reset-success">
+        <svg width="40" height="40" viewBox="0 0 256 256" fill="currentColor"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg>
+        <h3>Password updated!</h3>
+        <p>Your password has been changed successfully.<br>Redirecting you to sign in…</p>
+      </div>
+
+      <!-- shown when the link is expired or invalid -->
+      <div id="reset-invalid" style="display:none;text-align:center;padding:8px 0">
+        <p style="font-size:.85rem;color:var(--sub);margin-bottom:16px">This reset link has expired or already been used. Please request a new one.</p>
+        <button class="btn-submit" id="btn-back-to-login" style="max-width:220px;margin:0 auto">
+          <span class="btn-text">Back to Sign In</span>
+          <div class="spin"></div>
+        </button>
+      </div>
+    </div><!-- /panel-reset -->
+
     <!-- Footer -->
     <div class="footer">
-      By continuing you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+      By continuing you agree to our <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>
     </div>
 
   </div><!-- /card -->
@@ -562,7 +650,9 @@ import { getAuth, onAuthStateChanged,
          signInWithEmailAndPassword,
          createUserWithEmailAndPassword,
          updateProfile,
-         sendPasswordResetEmail }    from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+         sendPasswordResetEmail,
+         verifyPasswordResetCode,
+         confirmPasswordReset }      from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // ── Firebase init ──
 const fbApp = initializeApp({
@@ -631,10 +721,102 @@ function togglePw(inputId, btn) {
     : `<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>`;
 }
 
-// ── Auth state ──
-onAuthStateChanged(auth, user => {
-  if (user) location.href = 'dashboard.html';
+// ── Password strength indicator ──
+document.getElementById('new-pw').addEventListener('input', function () {
+  const pw  = this.value;
+  const bar = document.getElementById('pw-strength-bar');
+  let score = 0;
+  if (pw.length >= 8)           score++;
+  if (pw.length >= 12)          score++;
+  if (/[A-Z]/.test(pw))         score++;
+  if (/[0-9]/.test(pw))         score++;
+  if (/[^A-Za-z0-9]/.test(pw))  score++;
+  const pcts   = ['0%','20%','40%','60%','80%','100%'];
+  const colors = ['','#ef4444','#f59e0b','#f59e0b','#22c55e','#22c55e'];
+  bar.style.width      = pcts[score];
+  bar.style.background = colors[score];
 });
+
+// ── URL parameter handling ──
+// Firebase reset links arrive as ?mode=resetPassword&oobCode=XXX
+// Must be handled BEFORE onAuthStateChanged can redirect the user.
+const urlParams = new URLSearchParams(window.location.search);
+const resetMode = urlParams.get('mode');
+const oobCode   = urlParams.get('oobCode');
+
+if (resetMode === 'resetPassword' && oobCode) {
+
+  // Hide normal sign-in UI, show reset panel
+  document.querySelector('.tabs').style.display     = 'none';
+  document.getElementById('panel-in').style.display = 'none';
+  document.getElementById('panel-up').style.display = 'none';
+  document.getElementById('panel-reset').classList.add('active');
+  document.querySelector('.heading h1').textContent = 'Set new password';
+  document.querySelector('.heading p').textContent  = 'Choose a strong password for your account.';
+
+  // Verify the oobCode — confirms it has not expired or already been used
+  verifyPasswordResetCode(auth, oobCode)
+    .then(() => {
+      document.getElementById('reset-verifying').style.display = 'none';
+      document.getElementById('reset-form').style.display      = 'block';
+
+      document.getElementById('btn-set-pw').addEventListener('click', async () => {
+        clearErr();
+        const pw1 = document.getElementById('new-pw').value;
+        const pw2 = document.getElementById('new-pw2').value;
+
+        if (pw1.length < 8) {
+          showErr('Password must be at least 8 characters.'); return;
+        }
+        if (pw1 !== pw2) {
+          showErr('Passwords do not match.'); return;
+        }
+
+        setLoading('btn-set-pw', true);
+        try {
+          // confirmPasswordReset consumes the oobCode — it becomes invalid after this
+          await confirmPasswordReset(auth, oobCode, pw1);
+
+          document.getElementById('reset-form').style.display = 'none';
+          document.getElementById('reset-done').style.display = 'block';
+
+          // Remove oobCode from URL so the browser back button cannot resubmit it
+          window.history.replaceState({}, document.title, window.location.pathname);
+
+          setTimeout(() => { location.href = 'app.html'; }, 2500);
+        } catch (e) {
+          setLoading('btn-set-pw', false);
+          const msgs = {
+            'auth/expired-action-code': 'This reset link has expired. Please request a new one.',
+            'auth/invalid-action-code': 'This reset link is invalid or already been used.',
+            'auth/user-disabled':       'This account has been disabled.',
+            'auth/user-not-found':      'No account found for this reset link.',
+            'auth/weak-password':       'Password is too weak — use at least 8 characters.',
+          };
+          showErr(msgs[e.code] || "Could not set password (" + e.code + ").");
+        }
+      });
+
+      document.getElementById('new-pw2').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('btn-set-pw').click();
+      });
+    })
+    .catch(() => {
+      // Code expired or already used
+      document.getElementById('reset-verifying').style.display = 'none';
+      document.getElementById('reset-invalid').style.display   = 'block';
+      document.getElementById('btn-back-to-login').addEventListener('click', () => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        location.href = 'app.html';
+      });
+    });
+
+} else {
+  // Normal flow — redirect if already signed in
+  onAuthStateChanged(auth, user => {
+    if (user) location.href = 'dashboard.html';
+  });
+}
 
 // ── Google OAuth ──
 async function oauthSignIn() {
