@@ -583,6 +583,27 @@ html, body {
 
     </div><!-- /panel-up -->
 
+    <!-- ── EMAIL VERIFICATION PENDING PANEL ── -->
+    <div id="panel-verify" style="display:none">
+      <div style="text-align:center;padding:8px 0 4px">
+        <svg width="44" height="44" viewBox="0 0 256 256" fill="currentColor" style="color:var(--accent);display:block;margin:0 auto 14px"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"/></svg>
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:6px">Check your email</h3>
+        <p style="font-size:.82rem;color:var(--sub);line-height:1.65;margin-bottom:18px">
+          We sent a verification link to<br>
+          <strong id="verify-email-display" style="color:var(--text)"></strong><br><br>
+          Click the link in that email to activate your account. Check your spam folder if you don't see it.
+        </p>
+        <div class="err" id="verify-err" style="margin-bottom:12px"></div>
+        <button class="btn-submit" id="btn-resend-verify" style="margin-bottom:10px">
+          <span class="btn-text">Resend verification email</span>
+          <div class="spin"></div>
+        </button>
+        <div style="text-align:center;margin-top:8px">
+          <a id="btn-back-signin" style="font-size:.78rem;color:var(--accent);cursor:pointer">Back to sign in</a>
+        </div>
+      </div>
+    </div><!-- /panel-verify -->
+
     <!-- ── RESET PASSWORD PANEL ── -->
     <div id="panel-reset">
       <!-- shown while verifying the oobCode -->
@@ -645,11 +666,12 @@ html, body {
 
 <script type="module">
 import { initializeApp }             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged,
+import { getAuth, onAuthStateChanged, signOut,
          signInWithPopup, GoogleAuthProvider,
          signInWithEmailAndPassword,
          createUserWithEmailAndPassword,
          updateProfile,
+         sendEmailVerification,
          sendPasswordResetEmail,
          verifyPasswordResetCode,
          confirmPasswordReset }      from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -696,6 +718,24 @@ function fbErr(code) {
     'auth/too-many-requests':    'Too many attempts. Please wait a few minutes.',
   };
   return map[code] || 'Something went wrong. Please try again.';
+}
+
+// ── 60-day session expiry ──
+// We store a loginTimestamp in localStorage on every fresh sign-in.
+// On each auth state check we verify it hasn't exceeded 60 days.
+const SESSION_KEY    = 'cai_login_ts';
+const MAX_SESSION_MS = 60 * 24 * 60 * 60 * 1000; // 60 days in ms
+
+function stampSession() {
+  localStorage.setItem(SESSION_KEY, Date.now().toString());
+}
+function isSessionExpired() {
+  const ts = parseInt(localStorage.getItem(SESSION_KEY) || '0', 10);
+  if (!ts) return true; // no stamp = treat as expired
+  return (Date.now() - ts) > MAX_SESSION_MS;
+}
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
 }
 
 // ── Tab switch ── (moved here so it's always ready)
@@ -812,21 +852,74 @@ if (resetMode === 'resetPassword' && oobCode) {
     });
 
 } else {
-  // Normal flow — redirect if already signed in
-  onAuthStateChanged(auth, user => {
-    if (user) location.href = 'dashboard.html';
+  // Normal flow — redirect if already signed in and session is valid
+  onAuthStateChanged(auth, async user => {
+    if (!user) return;
+    if (isSessionExpired()) {
+      clearSession();
+      await signOut(auth);
+      showErr('Your session has expired after 60 days. Please sign in again.');
+      return;
+    }
+    location.href = 'dashboard.html';
   });
 }
 
 // ── Google OAuth ──
+// Google accounts are always verified — stamp session and redirect directly
 async function oauthSignIn() {
   clearErr();
   try {
     await signInWithPopup(auth, gProv);
+    stampSession();
     location.href = 'dashboard.html';
   } catch (e) {
     showErr(fbErr(e.code));
   }
+}
+
+// ── Show email verification pending screen ──
+function showVerifyScreen(user) {
+  document.querySelector('.tabs').style.display        = 'none';
+  document.getElementById('panel-in').style.display   = 'none';
+  document.getElementById('panel-up').style.display   = 'none';
+  document.getElementById('panel-verify').style.display = 'block';
+  document.querySelector('.heading h1').textContent   = 'Verify your email';
+  document.querySelector('.heading p').textContent    = 'One last step before you can access Collective AI.';
+  document.getElementById('verify-email-display').textContent = user.email || '';
+
+  // Resend button
+  let resendCooldown = false;
+  document.getElementById('btn-resend-verify').addEventListener('click', async () => {
+    if (resendCooldown) return;
+    setLoading('btn-resend-verify', true);
+    try {
+      await sendEmailVerification(user);
+      const ve = document.getElementById('verify-err');
+      ve.style.background  = 'rgba(99,102,241,.1)';
+      ve.style.borderColor = 'rgba(99,102,241,.25)';
+      ve.style.color       = '#a78bfa';
+      ve.textContent       = '✓ Verification email resent — check your inbox.';
+      ve.classList.add('show');
+      // Cooldown 60s to prevent spam
+      resendCooldown = true;
+      setTimeout(() => { resendCooldown = false; }, 60_000);
+    } catch (e) {
+      const ve = document.getElementById('verify-err');
+      ve.style.background = ve.style.borderColor = ve.style.color = '';
+      ve.textContent = e.code === 'auth/too-many-requests'
+        ? 'Too many requests. Please wait a minute before trying again.'
+        : 'Could not resend email. Please try again.';
+      ve.classList.add('show');
+    }
+    setLoading('btn-resend-verify', false);
+  });
+
+  // Back to sign in
+  document.getElementById('btn-back-signin').addEventListener('click', async () => {
+    await signOut(auth);
+    location.reload();
+  });
 }
 
 // ── Email sign in ──
@@ -837,7 +930,14 @@ async function emailSignIn() {
   if (!email || !pw) { showErr('Please enter your email and password.'); return; }
   setLoading('btn-submit-in', true);
   try {
-    await signInWithEmailAndPassword(auth, email, pw);
+    const cred = await signInWithEmailAndPassword(auth, email, pw);
+    if (!cred.user.emailVerified) {
+      // Account exists but email not yet verified — show resend screen
+      setLoading('btn-submit-in', false);
+      showVerifyScreen(cred.user);
+      return;
+    }
+    stampSession();
     location.href = 'dashboard.html';
   } catch (e) {
     showErr(fbErr(e.code));
@@ -851,14 +951,16 @@ async function emailSignUp() {
   const name  = document.getElementById('up-name').value.trim();
   const email = document.getElementById('up-email').value.trim();
   const pw    = document.getElementById('up-pw').value;
-  if (!name)        { showErr('Please enter your name.');                return; }
-  if (!email)       { showErr('Please enter your email.');               return; }
+  if (!name)        { showErr('Please enter your name.');                 return; }
+  if (!email)       { showErr('Please enter your email.');                return; }
   if (pw.length < 6){ showErr('Password must be at least 6 characters.'); return; }
   setLoading('btn-submit-up', true);
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pw);
     await updateProfile(cred.user, { displayName: name });
-    location.href = 'dashboard.html';
+    await sendEmailVerification(cred.user);
+    setLoading('btn-submit-up', false);
+    showVerifyScreen(cred.user);
   } catch (e) {
     showErr(fbErr(e.code));
     setLoading('btn-submit-up', false);
