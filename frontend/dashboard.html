@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard | Collective AI</title>
-<link rel="icon" href="images/Logo-favicon.png" type="image/png">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -363,8 +362,23 @@ let me=null;
 const sCol=()=>collection(db,'users',me.uid,'sessions');
 const mCol=sid=>collection(db,'users',me.uid,'sessions',sid,'messages');
 
-onAuthStateChanged(auth,user=>{
+// ── 60-day session expiry (enforced here too, not just on app.html) ──
+const SESSION_KEY    = 'cai_login_ts';
+const MAX_SESSION_MS = 60 * 24 * 60 * 60 * 1000;
+function isSessionExpired() {
+  const ts = parseInt(localStorage.getItem(SESSION_KEY) || '0', 10);
+  return !ts || (Date.now() - ts) > MAX_SESSION_MS;
+}
+
+onAuthStateChanged(auth,async user=>{
   if(!user){location.href='app.html';return;}
+  // Enforce 60-day expiry
+  if(isSessionExpired()){
+    localStorage.removeItem(SESSION_KEY);
+    await signOut(auth);
+    location.href='app.html';
+    return;
+  }
   me=user;ui.setUser(user);
   onSnapshot(query(sCol(),orderBy('createdAt','desc')),snap=>{
     ui.sessions=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -417,4 +431,3 @@ console.log('Firebase ready');
 </script>
 </body>
 </html>
-
