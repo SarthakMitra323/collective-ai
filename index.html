@@ -1,631 +1,1249 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collective AI | Intelligence, Democratized</title>
-    <meta name="description" content="Collective AI - Growing stronger as the community grows.">
-    <!-- Favicon -->
-    <link rel="icon" href="frontend/images/Logo-favicon.png" type="image/png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collective AI — AI, backed by people.</title>
+<meta name="description" content="Get answers enhanced by real human insights. Collective AI combines the speed of AI with the depth of community knowledge.">
+<link rel="icon" href="frontend/images/Logo-favicon.png" type="image/png">
 
-    <!-- Clarity Installation -->
-    <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window, document, "clarity", "script", "vyqjhyxzk2");
-    </script>
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Clarity -->
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","vyqjhyxzk2");
+</script>
 
-    <!-- Libraries -->
-    <!-- GSAP & ScrollTrigger -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-    <!-- Lenis Smooth Scroll (Crucial for cinematic feel) -->
-    <script src="https://unpkg.com/lenis@1.3.17/dist/lenis.min.js"></script>
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web@2.1.2"></script>
-    <noscript><style>body { visibility: visible !important; }</style></noscript>
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
 
-    <style>
-        /* --- CORE STYLES & RESET --- */
-        :root {
-            --bg-deep: #030305;
-            --bg-panel: rgba(255, 255, 255, 0.02);
-            --primary: #6366f1;
-            --accent: #a855f7;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --glass-border: rgba(255, 255, 255, 0.05);
-        }
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<!-- Lenis -->
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.17/dist/lenis.min.js"></script>
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        html.lenis { height: auto; }
-        .lenis.lenis-smooth { scroll-behavior: auto !important; }
-        .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
-        .lenis.lenis-stopped { overflow: hidden; }
-        .lenis.lenis-scrolling iframe { pointer-events: none; }
+<style>
+/* ─── RESET & BASE ─────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            background-color: var(--bg-deep); color: var(--text-main);
-            font-family: 'Inter', sans-serif; overflow-x: hidden;
-            -webkit-font-smoothing: antialiased; visibility: hidden; /* Prevent FOUC */
-        }
+:root {
+  --black:   #0a0a0a;
+  --white:   #fafafa;
+  --gray-1:  #f4f4f4;
+  --gray-2:  #e8e8e8;
+  --gray-3:  #c8c8c8;
+  --gray-4:  #888;
+  --gray-5:  #444;
+  --accent:  #3d52d5;       /* single accent — deep indigo */
+  --accent-l:#eef0fc;       /* accent tint for backgrounds */
+  --serif:   'DM Serif Display', Georgia, serif;
+  --sans:    'DM Sans', system-ui, sans-serif;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-        h1, h2, h3, h4, .font-display { font-family: 'Plus Jakarta Sans', sans-serif; }
-        a { text-decoration: none; color: inherit; }
-        img { max-width: 100%; display: block; object-fit: cover; }
+html { font-size: 16px; scroll-behavior: auto; }
+html.lenis { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
 
-        .container { max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
+body {
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--sans);
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
 
-        .gradient-text {
-            background: linear-gradient(135deg, #fff 0%, #a855f7 100%);
-            background-clip: text;
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;
-        }
+a { text-decoration: none; color: inherit; }
+img { display: block; max-width: 100%; }
 
-        /* --- PRELOADER --- */
-        #preloader {
-            position: fixed; inset: 0; background: #000; z-index: 9999;
-            display: flex; justify-content: center; align-items: center; visibility: visible;
-        }
-        .preloader-brand { font-size: 1.5rem; font-weight: 800; font-family: 'Plus Jakarta Sans'; letter-spacing: 2px; }
-        .preloader-progress {
-            position: absolute; bottom: 0; left: 0; height: 3px; background: var(--primary); width: 0%;
-        }
+/* ─── UTILITY ───────────────────────────────────────────────── */
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+.container--narrow { max-width: 720px; }
+.container--wide   { max-width: 1200px; }
 
-        /* --- NAVIGATION --- */
-        .navbar {
-            position: fixed; width: 100%; top: 0; z-index: 100; padding: 1.5rem 0;
-            transition: all 0.4s ease;
-        }
-        .navbar.scrolled {
-            background: rgba(3, 3, 5, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            padding: 1rem 0; border-bottom: 1px solid var(--glass-border);
-        }
-        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
-        .logo { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; font-size: 1.2rem; font-family: 'Plus Jakarta Sans'; z-index: 101; position: relative; }
-        .logo img { height: 24px; border-radius: 4px; }
-        
-        .nav-links { display: flex; gap: 2rem; }
-        .nav-item { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; transition: color 0.3s; }
-        .nav-item:hover { color: var(--text-main); }
-        
-        .nav-btn {
-            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
-            padding: 0.5rem 1.25rem; border-radius: 50px; font-size: 0.85rem; font-weight: 600;
-            transition: all 0.3s;
-        }
-        .nav-btn:hover { background: #fff; color: #000; }
-        
-        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; z-index: 101; position: relative; }
+/* ─── REVEAL ANIMATIONS (set by GSAP) ───────────────────────── */
+.reveal         { opacity: 0; transform: translateY(28px); }
+.reveal-left    { opacity: 0; transform: translateX(-24px); }
+.reveal-right   { opacity: 0; transform: translateX(24px); }
+.reveal-scale   { opacity: 0; transform: scale(0.96); }
 
-        /* --- CINEMATIC HERO --- */
-        .hero-section {
-            height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center;
-            position: relative; overflow: hidden;
-        }
-        .hero-bg {
-            position: absolute; inset: 0; z-index: 0;
-            background: radial-gradient(circle at center, rgba(99,102,241,0.15) 0%, transparent 60%);
-            transform-origin: center center;
-        }
-        .hero-content {
-            position: relative; z-index: 1; text-align: center; max-width: 1000px; padding: 0 1rem;
-        }
-        .hero-label {
-            display: inline-block; padding: 0.5rem 1rem; border-radius: 50px;
-            border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.05);
-            color: #d8b4fe; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;
-            margin-bottom: 1.5rem; /* Tightened */
-        }
-        .hero-title {
-            font-size: clamp(2.5rem, 5.5vw, 5rem); /* Scaled down perfectly for laptops */
-            font-weight: 800; line-height: 1.05;
-            letter-spacing: -0.04em; margin-bottom: 1rem; /* Tightened */
-        }
-        .hero-desc {
-            font-size: clamp(1rem, 1.5vw, 1.25rem); color: var(--text-muted);
-            max-width: 600px; margin: 0 auto 2rem auto; line-height: 1.6; /* Tightened */
-        }
-        .btn-primary {
-            display: inline-block; background: #fff; color: #000;
-            padding: 1rem 2.5rem; border-radius: 50px; font-weight: 700; font-size: 1rem;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        .btn-primary:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(255,255,255,0.2); }
+/* ─── NAV ────────────────────────────────────────────────────── */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.4s, backdrop-filter 0.4s, border-color 0.4s;
+  border-bottom: 1px solid transparent;
+}
+.nav.scrolled {
+  background: rgba(250,250,250,0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom-color: var(--gray-2);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+.nav-logo-mark {
+  width: 28px; height: 28px;
+  background: var(--black);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-logo-mark svg { color: var(--white); }
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--gray-5);
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--black); }
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s, background 0.2s, color 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn:active { transform: scale(0.97) !important; }
+.btn--ghost {
+  background: transparent;
+  color: var(--gray-5);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--gray-2);
+}
+.btn--ghost:hover {
+  background: var(--gray-1);
+  color: var(--black);
+  transform: translateY(-1px);
+}
+.btn--solid {
+  background: var(--black);
+  color: var(--white);
+  padding: 10px 22px;
+  border-radius: 10px;
+}
+.btn--solid:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+.btn--accent {
+  background: var(--accent);
+  color: #fff;
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.btn--accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(61,82,213,0.28);
+}
+.btn--accent-large {
+  padding: 16px 40px;
+  font-size: 1.05rem;
+  border-radius: 14px;
+}
 
-        /* --- HORIZONTAL MARQUEE (CSS Animated) --- */
-        .marquee-section { 
-            padding: 4rem 0; overflow: hidden; white-space: nowrap; 
-            border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); 
-            display: flex; background: rgba(0, 0, 0, 0.3);
-        }
-        .marquee-content { 
-            display: flex; animation: scrollMarquee 35s linear infinite; padding-right: 2rem; 
-        }
-        .marquee-text {
-            font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: clamp(2rem, 5vw, 4.5rem);
-            color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: -0.01em;
-        }
-        .marquee-text span { color: #fff; }
+/* ─── NAV MOBILE ─────────────────────────────────────────────── */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 4px;
+  background: none;
+  border: none;
+}
+.nav-hamburger span {
+  display: block;
+  width: 22px; height: 1.5px;
+  background: var(--black);
+  border-radius: 2px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.nav-mobile {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--white);
+  z-index: 99;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+.nav-mobile.open { display: flex; }
+.nav-mobile a {
+  font-family: var(--serif);
+  font-size: 2rem;
+  color: var(--black);
+}
 
-        @keyframes scrollMarquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
-        }
+/* ─── HERO ───────────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 32px 80px;
+  position: relative;
+  overflow: hidden;
+}
 
-        /* --- CINEMATIC PINNED SEQUENCE --- */
-        .story-container { position: relative; background: var(--bg-deep); }
-        .story-scroll-area { height: 400vh; position: relative; } 
-        
-        .story-pin-wrap {
-            height: 100vh; height: 100dvh; display: flex; align-items: center; overflow: hidden;
-        }
+/* Ambient glow — subtle, centered */
+.hero-glow {
+  position: absolute;
+  width: 700px; height: 700px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(61,82,213,0.07) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 
-        .story-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; width: 100%; 
-            height: 80vh; max-height: 800px; max-width: 1400px; margin: 0 auto; padding: 0 2rem;
-        }
+.hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--accent-l);
+  border: 1px solid rgba(61,82,213,0.15);
+  padding: 5px 13px;
+  border-radius: 100px;
+  margin-bottom: 32px;
+}
+.hero-label-dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.7); }
+}
 
-        /* Left side: Text */
-        .story-text-col { 
-            position: relative; display: flex; flex-direction: column; justify-content: center; 
-            height: 100%; z-index: 10; 
-        }
-        .story-text-block { 
-            position: absolute; left: 0; right: 0; opacity: 0; transform: translateY(50px); 
-        }
-        
-        .story-step-num { font-size: 0.9rem; color: var(--primary); font-family: 'Plus Jakarta Sans'; font-weight: 700; margin-bottom: 1rem; letter-spacing: 2px;}
-        .story-text-block h2 { font-size: clamp(2.5rem, 4vw, 4rem); line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -0.02em; text-shadow: 0 4px 30px rgba(0,0,0,1); }
-        .story-text-block p { font-size: 1.15rem; color: #f1f5f9; max-width: 450px; line-height: 1.6; text-shadow: 0 2px 15px rgba(0,0,0,1); font-weight: 500; }
+.hero-title {
+  font-family: var(--serif);
+  font-size: clamp(3rem, 7vw, 6.5rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--black);
+  margin-bottom: 24px;
+  max-width: 800px;
+}
+.hero-title em {
+  font-style: italic;
+  color: var(--gray-4);
+}
 
-        /* Right side: Image Sequence */
-        .story-img-col { 
-            position: relative; height: 100%; border-radius: 24px; overflow: hidden; 
-            border: 1px solid var(--glass-border); z-index: 1; background: #000;
-        }
-        .story-img {
-            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-            opacity: 0; transform: scale(1.1); filter: brightness(0.6) contrast(1.1);
-        }
-        .story-img::after {
-            content: ''; position: absolute; inset: 0; 
-            background: linear-gradient(to right, var(--bg-deep) 0%, rgba(3,3,5,0.6) 40%, transparent 100%);
-        }
+.hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  font-weight: 300;
+  color: var(--gray-4);
+  line-height: 1.65;
+  max-width: 460px;
+  margin-bottom: 44px;
+  letter-spacing: -0.01em;
+}
 
-        /* --- THE CORE (Dark Mode Detail) --- */
-        .core-section { padding: 8rem 0; position: relative; text-align: center; }
-        .core-section::before {
-            content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-            width: 1px; height: 80px; background: linear-gradient(to bottom, transparent, var(--primary));
-        }
-        .core-box {
-            background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border);
-            border-radius: 32px; padding: 4rem 2rem; max-width: 1000px; margin: 0 auto;
-            position: relative; overflow: hidden;
-            box-shadow: 0 0 100px rgba(99, 102, 241, 0.05);
-        }
-        .core-box h2 { font-size: clamp(2rem, 5vw, 4rem); margin-bottom: 1.5rem; }
-        .core-box p { color: var(--text-muted); font-size: 1.15rem; max-width: 600px; margin: 0 auto 3rem auto; }
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 80px;
+}
 
-        /* --- CREATOR SECTION --- */
-        .creator-section { padding: 6rem 0 8rem; }
-        .creator-card {
-            max-width: 1000px; margin: 0 auto;
-            background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);
-            border-radius: 28px; padding: 3rem 2.25rem;
-            box-shadow: 0 0 80px rgba(99, 102, 241, 0.08);
-        }
-        .creator-label {
-            display: inline-block; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;
-            color: #d8b4fe; border: 1px solid rgba(168,85,247,0.35); border-radius: 999px;
-            padding: 0.45rem 0.95rem; margin-bottom: 1.25rem;
-        }
-        .creator-card h2 { font-size: clamp(1.8rem, 4vw, 3rem); margin-bottom: 1rem; }
-        .creator-card p { color: var(--text-muted); font-size: 1.05rem; line-height: 1.75; margin-bottom: 1rem; }
-        .creator-skills { margin: 1rem 0 0.5rem 1.2rem; color: var(--text-main); line-height: 1.8; }
-        .creator-links { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.5rem; }
-        .creator-link {
-            padding: 0.55rem 1rem; border-radius: 999px; font-size: 0.9rem; font-weight: 600;
-            border: 1px solid var(--glass-border); background: rgba(255,255,255,0.04); transition: all 0.3s;
-        }
-        .creator-link:hover { background: #fff; color: #000; }
+.hero-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.hero-stat {
+  text-align: center;
+}
+.hero-stat-num {
+  font-family: var(--serif);
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--black);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.hero-stat-lbl {
+  font-size: 0.78rem;
+  color: var(--gray-4);
+  letter-spacing: 0.02em;
+}
+.hero-stat-div {
+  width: 1px;
+  height: 36px;
+  background: var(--gray-2);
+}
 
-        /* --- FAQ SECTION --- */
-        .faq-section { padding: 2rem 0 8rem; }
-        .faq-wrap {
-            max-width: 1000px; margin: 0 auto;
-            background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border);
-            border-radius: 28px; padding: 3rem 2.25rem;
-        }
-        .faq-header { text-align: center; margin-bottom: 2rem; }
-        .faq-header h2 { font-size: clamp(1.8rem, 4vw, 3rem); margin-bottom: 0.75rem; }
-        .faq-header p { color: var(--text-muted); max-width: 650px; margin: 0 auto; line-height: 1.7; }
+/* ─── SECTION COMMON ─────────────────────────────────────────── */
+section { padding: 120px 0; }
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray-4);
+  margin-bottom: 16px;
+}
+.section-title {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--black);
+  margin-bottom: 20px;
+}
+.section-body {
+  font-size: 1.05rem;
+  font-weight: 300;
+  color: var(--gray-4);
+  line-height: 1.7;
+  max-width: 520px;
+  letter-spacing: -0.01em;
+}
 
-        .faq-list { display: grid; gap: 0.9rem; }
-        .faq-item {
-            border: 1px solid var(--glass-border); border-radius: 14px;
-            background: rgba(255,255,255,0.02); overflow: hidden;
-        }
-        .faq-item summary {
-            list-style: none; cursor: pointer; padding: 1rem 3rem 1rem 1.1rem;
-            font-weight: 600; font-size: 1rem; position: relative;
-        }
-        .faq-item summary::-webkit-details-marker { display: none; }
-        .faq-item summary::after {
-            content: '+'; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
-            width: 1.6rem; height: 1.6rem; border-radius: 999px; display: grid; place-items: center;
-            background: rgba(168,85,247,0.15); color: #d8b4fe; font-size: 1rem; font-weight: 700;
-            transition: transform 0.2s ease;
-        }
-        .faq-item[open] summary::after {
-            content: '−'; transform: translateY(-50%) rotate(180deg);
-        }
-        .faq-answer {
-            padding: 0 1.1rem 1.1rem; color: var(--text-muted); line-height: 1.7; font-size: 0.96rem;
-        }
+/* ─── DEMO SECTION ───────────────────────────────────────────── */
+.demo-section {
+  background: var(--gray-1);
+  padding: 120px 0;
+  border-top: 1px solid var(--gray-2);
+  border-bottom: 1px solid var(--gray-2);
+}
+.demo-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+.demo-header .section-body {
+  margin: 0 auto;
+}
 
-        /* --- FOOTER --- */
-        footer { padding: 3rem 2rem; border-top: 1px solid var(--glass-border); text-align: center; }
-        footer .logo { justify-content: center; margin-bottom: 1rem; opacity: 0.5; }
-        footer p { color: var(--text-muted); font-size: 0.9rem; }
+.demo-window {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--white);
+  border: 1px solid var(--gray-2);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+.demo-window-bar {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--gray-2);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--gray-1);
+}
+.demo-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.demo-dot:nth-child(1) { background: #ff5f57; }
+.demo-dot:nth-child(2) { background: #febc2e; }
+.demo-dot:nth-child(3) { background: #28c840; }
+.demo-window-title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--gray-4);
+  font-weight: 400;
+  margin-left: -29px; /* optical centering past dots */
+}
 
-        /* --- MOBILE RESPONSIVE --- */
-        @media (max-width: 968px) {
-            .story-grid { 
-                grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: 2rem; 
-                height: 100dvh; padding-top: 15dvh; padding-bottom: 5dvh; 
-            }
-            .story-text-col { height: 30vh; justify-content: flex-start; }
-            .story-text-block { position: absolute; top: 0; }
-            .story-text-block h2 { font-size: 2.25rem; margin-bottom: 1rem; }
-            .story-text-block p { font-size: 1rem; }
-            
-            .story-img-col { height: 100%; min-height: 0; border-radius: 16px; }
-            .story-img::after { background: linear-gradient(to top, transparent 40%, rgba(3,3,5,0.8) 75%, var(--bg-deep) 100%); }
-        }
+.demo-body { padding: 32px; display: flex; flex-direction: column; gap: 24px; }
 
-        @media (max-width: 768px) {
-            /* Mobile Navigation Overlay */
-            .nav-links { 
-                position: fixed; inset: 0; background: rgba(3, 3, 5, 0.98); 
-                backdrop-filter: blur(10px); z-index: 100;
-                display: flex; flex-direction: column; justify-content: center; align-items: center; 
-                gap: 2.5rem; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-            }
-            .nav-links.active { opacity: 1; pointer-events: auto; }
-            .nav-links .nav-item { font-size: 1.5rem; font-weight: 600; }
-            
-            .nav-actions { display: none; }
-            .menu-toggle { display: block; color: #fff; }
-            
-            .hero-title { font-size: clamp(2.5rem, 8vw, 3.5rem); }
-            .hero-desc { font-size: 1rem; }
-            .core-box { padding: 3rem 1.5rem; border-radius: 20px; }
-            .creator-card { padding: 2.25rem 1.25rem; border-radius: 20px; }
-            .faq-section { padding-bottom: 6rem; }
-            .faq-wrap { padding: 2.25rem 1.25rem; border-radius: 20px; }
-            .faq-item summary { font-size: 0.96rem; }
-            .marquee-section { padding: 2.5rem 0; }
-        }
-    </style>
+/* Question bubble */
+.demo-q {
+  display: flex;
+  justify-content: flex-end;
+}
+.demo-q-bubble {
+  background: var(--black);
+  color: var(--white);
+  padding: 13px 18px;
+  border-radius: 16px 16px 4px 16px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  max-width: 80%;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s, transform 0.4s;
+}
+.demo-q-bubble.visible { opacity: 1; transform: none; }
+
+/* AI Answer card */
+.demo-ai {
+  display: flex;
+  gap: 12px;
+}
+.demo-ai-avatar {
+  width: 32px; height: 32px;
+  background: var(--black);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.demo-ai-body { flex: 1; }
+.demo-ai-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--gray-4);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.demo-ai-card {
+  background: var(--white);
+  border: 1px solid var(--gray-2);
+  border-radius: 14px;
+  padding: 18px 20px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--black);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s 0.2s, transform 0.4s 0.2s;
+}
+.demo-ai-card.visible { opacity: 1; transform: none; }
+
+/* Community insights */
+.demo-insights { margin-top: 4px; }
+.demo-insights-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  opacity: 0;
+  transition: opacity 0.4s 0.5s;
+}
+.demo-insights-label.visible { opacity: 1; }
+.demo-insights-label::before {
+  content: '';
+  display: block;
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.demo-insight-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.demo-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--accent-l);
+  border: 1px solid rgba(61,82,213,0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--black);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.35s, transform 0.35s;
+}
+.demo-insight.visible { opacity: 1; transform: none; }
+.demo-insight-av {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--gray-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--gray-5);
+  flex-shrink: 0;
+}
+.demo-insight-meta {
+  flex: 1;
+  min-width: 0;
+}
+.demo-insight-author {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--gray-5);
+  margin-bottom: 3px;
+}
+.demo-insight-text { color: var(--black); }
+
+/* Typewriter cursor */
+.cursor {
+  display: inline-block;
+  width: 2px; height: 1em;
+  background: var(--black);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: blink 0.9s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ─── HOW IT WORKS ───────────────────────────────────────────── */
+.how-section { padding: 120px 0; }
+.how-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--gray-2);
+  border: 1px solid var(--gray-2);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-top: 64px;
+}
+.how-card {
+  background: var(--white);
+  padding: 44px 36px;
+  transition: background 0.25s;
+}
+.how-card:hover { background: var(--gray-1); }
+.how-num {
+  font-family: var(--serif);
+  font-size: 3rem;
+  font-weight: 400;
+  color: var(--gray-2);
+  line-height: 1;
+  margin-bottom: 24px;
+  letter-spacing: -0.04em;
+}
+.how-title {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: var(--black);
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.how-body {
+  font-size: 0.9rem;
+  color: var(--gray-4);
+  line-height: 1.65;
+  font-weight: 300;
+}
+
+/* ─── FEATURES ───────────────────────────────────────────────── */
+.features-section { padding: 120px 0; background: var(--black); }
+.features-section .section-title { color: var(--white); }
+.features-section .section-label { color: rgba(255,255,255,0.35); }
+.features-section .section-body  { color: rgba(255,255,255,0.4); }
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-top: 64px;
+}
+.feature-card {
+  padding: 44px 40px;
+  background: var(--black);
+  transition: background 0.25s;
+}
+.feature-card:hover { background: #111; }
+.feature-icon {
+  width: 44px; height: 44px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+  color: rgba(255,255,255,0.7);
+}
+.feature-title {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  color: var(--white);
+  margin-bottom: 10px;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+.feature-body {
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.65;
+  font-weight: 300;
+}
+
+/* ─── TESTIMONIALS ───────────────────────────────────────────── */
+.testimonials-section { padding: 120px 0; }
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-top: 64px;
+}
+.testimonial-card {
+  background: var(--white);
+  border: 1px solid var(--gray-2);
+  border-radius: 18px;
+  padding: 32px 28px;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.testimonial-card:hover {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+  transform: translateY(-3px);
+}
+.testimonial-quote {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--black);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  font-style: italic;
+}
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.testimonial-av {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--gray-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gray-5);
+  flex-shrink: 0;
+}
+.testimonial-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--black);
+}
+.testimonial-role {
+  font-size: 0.78rem;
+  color: var(--gray-4);
+}
+
+/* ─── CTA STRIP ──────────────────────────────────────────────── */
+.cta-section {
+  padding: 120px 0;
+  background: var(--gray-1);
+  border-top: 1px solid var(--gray-2);
+  text-align: center;
+}
+.cta-section .section-body { margin: 0 auto 44px; }
+.cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* ─── FOOTER ─────────────────────────────────────────────────── */
+.footer {
+  padding: 48px 32px;
+  border-top: 1px solid var(--gray-2);
+}
+.footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.footer-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+.footer-links a {
+  font-size: 0.825rem;
+  color: var(--gray-4);
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--black); }
+.footer-copy {
+  font-size: 0.78rem;
+  color: var(--gray-3);
+}
+
+/* ─── HORIZONTAL RULE ────────────────────────────────────────── */
+.hr { border: none; border-top: 1px solid var(--gray-2); }
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .nav-links, .nav-cta { display: none; }
+  .nav-hamburger { display: flex; }
+  .how-grid { grid-template-columns: 1fr; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .testimonials-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0 20px; }
+  section { padding: 80px 0; }
+  .demo-section { padding: 80px 0; }
+  .how-grid { border-radius: 14px; }
+  .demo-window { border-radius: 14px; }
+  .hero { padding: 100px 20px 60px; }
+  .hero-stat-row { gap: 24px; }
+}
+/* FAILSAFE: ensure content is visible if JS fails */
+.no-js .reveal,
+.no-js .reveal-left,
+.no-js .reveal-right,
+.no-js .reveal-scale {
+  opacity: 1 !important;
+  transform: none !important;
+}
+</style>
 </head>
 <body>
 
-    <!-- PRELOADER -->
-    <div id="preloader">
-        <div class="preloader-brand">COLLECTIVE AI</div>
-        <div class="preloader-progress" id="progress-bar"></div>
+<!-- ─── NAV ──────────────────────────────────────────────────── -->
+<nav class="nav" id="nav">
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L56.18,130.22A8,8,0,0,1,57,114.54l112-120a8,8,0,0,1,13.69,7L168,94.87l46.64,35a8,8,0,0,1-.79,15.59Z"/></svg>
+    </div>
+    Collective AI
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="frontend/leaderboard.html">Leaderboard</a></li>
+    <li><a href="frontend/uptime.html">Status</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="frontend/app.html" class="btn btn--ghost">Sign in</a>
+    <a href="frontend/app.html" class="btn btn--solid">Get started</a>
+  </div>
+  <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile nav overlay -->
+<div class="nav-mobile" id="nav-mobile">
+  <a href="#how" onclick="closeMobile()">How it works</a>
+  <a href="#features" onclick="closeMobile()">Features</a>
+  <a href="frontend/leaderboard.html">Leaderboard</a>
+  <a href="frontend/app.html" class="btn btn--accent" style="margin-top:8px">Get started</a>
+</div>
+
+<!-- ─── HERO ──────────────────────────────────────────────────── -->
+<section class="hero" id="hero">
+  <div class="hero-glow"></div>
+
+  <div class="hero-label reveal">
+    <span class="hero-label-dot"></span>
+    Now in early access
+  </div>
+
+  <h1 class="hero-title reveal">
+    AI, <em>backed</em><br>by people.
+  </h1>
+
+  <p class="hero-subtitle reveal">
+    Get answers enhanced by real human insights. The speed of AI, deepened by community knowledge.
+  </p>
+
+  <div class="hero-actions reveal">
+    <a href="frontend/app.html" class="btn btn--accent btn--accent-large">Ask a Question</a>
+    <a href="#demo" class="btn btn--ghost" style="padding:14px 24px;font-size:1rem;border-radius:12px">See it work</a>
+  </div>
+
+  <div class="hero-stat-row reveal">
+    <div class="hero-stat">
+      <div class="hero-stat-num" id="stat-contribs">0</div>
+      <div class="hero-stat-lbl">Contributions</div>
+    </div>
+    <div class="hero-stat-div"></div>
+    <div class="hero-stat">
+      <div class="hero-stat-num" id="stat-users">0</div>
+      <div class="hero-stat-lbl">Community members</div>
+    </div>
+    <div class="hero-stat-div"></div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">9</div>
+      <div class="hero-stat-lbl">Knowledge categories</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── DEMO ──────────────────────────────────────────────────── -->
+<section class="demo-section" id="demo">
+  <div class="container container--narrow">
+    <div class="demo-header">
+      <p class="section-label reveal">Live demo</p>
+      <h2 class="section-title reveal">A question. An answer.<br><em style="font-style:italic;color:var(--gray-4)">Then the collective weighs in.</em></h2>
+      <p class="section-body reveal" style="margin:0 auto">Watch how Collective AI layers community knowledge on top of its AI response — turning a good answer into a great one.</p>
     </div>
 
-    <!-- NAVBAR -->
-    <nav class="navbar" id="navbar">
-        <div class="container nav-inner">
-            <a href="#" class="logo">
-                <img src="frontend/images/Logo.png" alt="C">
-                <span>Collective AI</span>
-            </a>
-            <div class="nav-links" id="nav-links">
-                <a href="#vision" class="nav-item mobile-nav-item">Vision</a>
-                <a href="#engine" class="nav-item mobile-nav-item">The Engine</a>
-                <a href="frontend/app.html" class="nav-item mobile-nav-item">Contribute</a>
+    <div class="demo-window reveal-scale" id="demo-window">
+      <div class="demo-window-bar">
+        <div class="demo-dot"></div>
+        <div class="demo-dot"></div>
+        <div class="demo-dot"></div>
+        <span class="demo-window-title">Collective AI</span>
+      </div>
+      <div class="demo-body">
+
+        <!-- Question -->
+        <div class="demo-q">
+          <div class="demo-q-bubble" id="demo-q">
+            <span id="demo-q-text"></span><span class="cursor" id="q-cursor"></span>
+          </div>
+        </div>
+
+        <!-- AI Answer -->
+        <div class="demo-ai">
+          <div class="demo-ai-avatar">
+            <svg width="14" height="14" viewBox="0 0 256 256" fill="white"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L56.18,130.22A8,8,0,0,1,57,114.54l112-120a8,8,0,0,1,13.69,7L168,94.87l46.64,35a8,8,0,0,1-.79,15.59Z"/></svg>
+          </div>
+          <div class="demo-ai-body">
+            <div class="demo-ai-name">Collective AI</div>
+            <div class="demo-ai-card" id="demo-answer">
+              <span id="demo-answer-text"></span><span class="cursor" id="a-cursor" style="display:none"></span>
             </div>
-            <div class="nav-actions">
-                <a href="frontend/app.html" class="nav-btn">Launch Core</a>
-            </div>
-            <!-- Hamburger Icon -->
-            <div class="menu-toggle" id="menu-toggle"><i class="ph ph-list"></i></div>
+          </div>
         </div>
-    </nav>
 
-    <!-- CINEMATIC HERO -->
-    <section class="hero-section" id="hero">
-        <div class="hero-bg" id="hero-bg"></div>
-        <div class="container hero-content">
-            <div class="hero-label">Human Synthesis Engine v1.0</div>
-            <h1 class="hero-title">
-                <div class="title-line">Intelligence</div>
-                <div class="title-line">Beyond The <span class="gradient-text">Individual</span></div>
-            </h1>
-            <p class="hero-desc">The first neural network trained not by scraping the dark web, but by synthesizing the verified wisdom of experts.</p>
-            <a href="frontend/app.html" class="btn-primary">Initialize Access</a>
+        <!-- Community insights -->
+        <div class="demo-insights">
+          <div class="demo-insights-label" id="insights-label">Community insights</div>
+          <div class="demo-insight-cards" id="insight-cards"></div>
         </div>
-    </section>
 
-    <!-- MASSIVE SCROLLING TEXT -->
-    <section class="marquee-section" id="vision">
-        <div class="marquee-content">
-            <h2 class="marquee-text">
-                Stop trusting <span>statistical guesses</span> &nbsp;•&nbsp; Demand <span>verified wisdom</span> &nbsp;•&nbsp; 
-            </h2>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── HOW IT WORKS ───────────────────────────────────────────── -->
+<section class="how-section" id="how">
+  <div class="container">
+    <p class="section-label reveal">Process</p>
+    <h2 class="section-title reveal">Three steps to a better answer.</h2>
+
+    <div class="how-grid">
+      <div class="how-card reveal">
+        <div class="how-num">01</div>
+        <div class="how-title">You ask</div>
+        <div class="how-body">Type any question — factual, technical, philosophical. Collective AI treats every question seriously, with no topic off-limits.</div>
+      </div>
+      <div class="how-card reveal">
+        <div class="how-num">02</div>
+        <div class="how-title">AI responds</div>
+        <div class="how-body">Our model generates an initial answer, then searches the community knowledge base to find relevant insights from contributors who know the subject deeply.</div>
+      </div>
+      <div class="how-card reveal">
+        <div class="how-num">03</div>
+        <div class="how-title">The collective enriches it</div>
+        <div class="how-body">Verified community contributions surface alongside the AI answer — nuances, corrections, real-world experience — making the response genuinely more useful.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FEATURES ───────────────────────────────────────────────── -->
+<section class="features-section" id="features">
+  <div class="container">
+    <p class="section-label reveal">What's inside</p>
+    <h2 class="section-title reveal">Built for depth,<br>not just speed.</h2>
+    <p class="section-body reveal">Most AI tools optimise for fast. We optimise for accurate, nuanced, and human-verified.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,105.64,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z"/></svg>
         </div>
-        <div class="marquee-content">
-            <h2 class="marquee-text">
-                Stop trusting <span>statistical guesses</span> &nbsp;•&nbsp; Demand <span>verified wisdom</span> &nbsp;•&nbsp; 
-            </h2>
+        <div class="feature-title">Community-verified knowledge</div>
+        <div class="feature-body">Every insight surfaced has been contributed by a real person. Not web-scraped. Not hallucinated. Written, reviewed, and owned by someone accountable.</div>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L56.18,130.22A8,8,0,0,1,57,114.54l112-120a8,8,0,0,1,13.69,7L168,94.87l46.64,35a8,8,0,0,1-.79,15.59Z"/></svg>
         </div>
-        <div class="marquee-content">
-            <h2 class="marquee-text">
-                Stop trusting <span>statistical guesses</span> &nbsp;•&nbsp; Demand <span>verified wisdom</span> &nbsp;•&nbsp; 
-            </h2>
+        <div class="feature-title">RAG-powered retrieval</div>
+        <div class="feature-body">We use Retrieval-Augmented Generation to search a vector database of community knowledge in real time, pulling the most semantically relevant context for every query.</div>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M232,208a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16H48V152a16,16,0,0,1,16-16H96a16,16,0,0,1,16,16v48h16V104a16,16,0,0,1,16-16h32a16,16,0,0,1,16,16V200h16a8,8,0,0,1,0,16Z"/></svg>
         </div>
-    </section>
-
-    <!-- PINNED STORY SEQUENCE -->
-    <section class="story-container" id="engine">
-        <div class="story-scroll-area" id="story-trigger">
-            <div class="story-pin-wrap" id="story-pin">
-                
-                <div class="story-grid">
-                    <!-- Text Side -->
-                    <div class="story-text-col">
-                        <!-- Step 1 -->
-                        <div class="story-text-block step-text-1">
-                            <div class="story-step-num">01 // INGESTION</div>
-                            <h2 class="font-display">Contribute<br>Expertise.</h2>
-                            <p>You provide the raw material. Write detailed articles, solve complex problems, and share your unique domain knowledge directly into the Collective Database.</p>
-                        </div>
-                        <!-- Step 2 -->
-                        <div class="story-text-block step-text-2">
-                            <div class="story-step-num">02 // VECTORIZATION</div>
-                            <h2 class="font-display">Neural<br>Mapping.</h2>
-                            <p>Our Retrieval-Augmented Generation (RAG) system instantly converts your text into mathematical vectors, finding hidden semantic connections between thousands of minds.</p>
-                        </div>
-                        <!-- Step 3 -->
-                        <div class="story-text-block step-text-3">
-                            <div class="story-step-num">03 // SYNTHESIS</div>
-                            <h2 class="font-display">Collective<br>Recall.</h2>
-                            <p>When asked a question, the AI doesn't hallucinate. It queries the vector space, retrieving verified human contributions to construct a perfectly synthesized answer.</p>
-                        </div>
-                    </div>
-
-                    <!-- Image Side -->
-                    <div class="story-img-col">
-                        <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-1" alt="Abstract Pattern">
-                        <img src="https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-2" alt="Neural Network Concept">
-                        <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1400&auto=format&fit=crop" class="story-img step-img-3" alt="Data Flow Concept">
-                    </div>
-                </div>
-
-            </div>
+        <div class="feature-title">Contribution leaderboard</div>
+        <div class="feature-body">The more you contribute, the smarter the AI gets for everyone. Top contributors are recognised publicly, creating genuine incentive to share knowledge.</div>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192Z"/></svg>
         </div>
-    </section>
+        <div class="feature-title">Full conversation history</div>
+        <div class="feature-body">Every conversation is saved and searchable. Come back to a thread days later. Build on previous answers. Your knowledge compounds over time.</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <!-- THE CORE / CTA -->
-    <section class="core-section">
-        <div class="container">
-            <div class="core-box">
-                <h2 class="font-display">The Neural Fabric Awaits</h2>
-                <p>An intelligence that evolves in real-time. Transparent, verifiable, and endlessly scalable. Become a node in the network.</p>
-                <a href="frontend/app.html" class="btn-primary">Access Dashboard</a>
-            </div>
+<!-- ─── TESTIMONIALS ───────────────────────────────────────────── -->
+<section class="testimonials-section">
+  <div class="container">
+    <p class="section-label reveal" style="text-align:center">What people say</p>
+    <h2 class="section-title reveal" style="text-align:center;margin:0 auto 64px">Trusted by curious minds.</h2>
+
+    <div class="testimonials-grid">
+      <div class="testimonial-card reveal">
+        <p class="testimonial-quote">"The difference in answer quality is striking. It's not just faster — it's actually more accurate because real experts have fed it their knowledge."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-av">AR</div>
+          <div>
+            <div class="testimonial-name">Arjun Rao</div>
+            <div class="testimonial-role">Software Engineer</div>
+          </div>
         </div>
-    </section>
-
-    <!-- CREATOR SECTION -->
-    <section class="creator-section" id="creator">
-        <div class="container">
-            <div class="creator-card">
-                <span class="creator-label">Creator Spotlight</span>
-                <h2 class="font-display">Meet Sarthak Mitra</h2>
-                <p>Sarthak Mitra is a young creator with a keen interest in coding and building meaningful digital experiences. He has already created multiple websites and keeps improving each project with new ideas.</p>
-                <p>His vision is to solve real-world problems through technology. Sarthak is currently highly skilled in HTML, CSS, JavaScript, and Python, and is also learning C and Java to integrate even more capabilities into his work.</p>
-                <p>He continues to grow as a dedicated creator focused on impact and continuous learning.</p>
-                <ul class="creator-skills">
-                    <li>Current expertise: HTML, CSS, JavaScript, Python</li>
-                    <li>Currently learning: C, Java</li>
-                </ul>
-                <div class="creator-links">
-                    <a href="https://mitra-codiga.vercel.app/" target="_blank" rel="noopener noreferrer" class="creator-link">mitra-codiga</a>
-                    <a href="https://music-flow-roulette.vercel.app/" target="_blank" rel="noopener noreferrer" class="creator-link">MusicFlow</a>
-                </div>
-            </div>
+      </div>
+      <div class="testimonial-card reveal">
+        <p class="testimonial-quote">"I contributed a few articles about machine learning and watched the AI start giving better answers to those exact questions. It's rewarding in a way no other platform is."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-av">SC</div>
+          <div>
+            <div class="testimonial-name">Sofia Chen</div>
+            <div class="testimonial-role">ML Researcher</div>
+          </div>
         </div>
-    </section>
-
-    <!-- FAQ SECTION -->
-    <section class="faq-section" id="faq">
-        <div class="container">
-            <div class="faq-wrap">
-                <div class="faq-header">
-                    <h2 class="font-display">Frequently Asked Questions</h2>
-                    <p>Everything you need to know before you contribute to Collective AI and start building with verified human intelligence.</p>
-                </div>
-                <div class="faq-list">
-                    <details class="faq-item" open>
-                        <summary>What makes Collective AI different from traditional AI tools?</summary>
-                        <div class="faq-answer">Collective AI is grounded in curated, verifiable human knowledge contributions rather than purely statistical next-token prediction from unverified web-scale data.</div>
-                    </details>
-                    <details class="faq-item">
-                        <summary>Who can contribute expertise to the platform?</summary>
-                        <div class="faq-answer">Developers, researchers, operators, and domain specialists can all contribute high-quality writeups, workflows, and problem-solving methods through the contribution portal.</div>
-                    </details>
-                    <details class="faq-item">
-                        <summary>How is contribution quality maintained?</summary>
-                        <div class="faq-answer">Submissions are structured for clarity and relevance, then embedded into the retrieval layer where semantic checks and curation standards improve consistency over time.</div>
-                    </details>
-                    <details class="faq-item">
-                        <summary>Is the FAQ section mobile-friendly?</summary>
-                        <div class="faq-answer">Yes. This section uses responsive spacing, scalable typography, and collapsible items that work smoothly across phones, tablets, and desktop screens.</div>
-                    </details>
-                </div>
-            </div>
+      </div>
+      <div class="testimonial-card reveal">
+        <p class="testimonial-quote">"The clean interface and the way community insights appear alongside the AI answer — it's a genuinely new kind of experience. I use it every day now."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-av">MK</div>
+          <div>
+            <div class="testimonial-name">Marcus Kipling</div>
+            <div class="testimonial-role">Product Designer</div>
+          </div>
         </div>
-    </section>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <!-- FOOTER -->
-    <footer>
-        <div class="container">
-            <div class="logo">
-                <img src="frontend/images/Logo.png" alt="C">
-                <span>Collective AI</span>
-            </div>
-            <p>&copy; 2026 Sarthak Mitra. All systems operational.</p>
-        </div>
-    </footer>
+<!-- ─── CTA ───────────────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="container container--narrow">
+    <p class="section-label reveal">Join the collective</p>
+    <h2 class="section-title reveal" style="max-width:560px;margin:0 auto 20px">Every question makes the<br>AI smarter for everyone.</h2>
+    <p class="section-body reveal">Start asking. Start contributing. The knowledge base grows with every person who joins.</p>
+    <div class="cta-actions reveal">
+      <a href="frontend/app.html" class="btn btn--accent btn--accent-large">Get started free</a>
+      <a href="frontend/contribution.html" class="btn btn--ghost" style="padding:14px 24px;font-size:1rem;border-radius:12px">Contribute knowledge</a>
+    </div>
+  </div>
+</section>
 
-    <!-- Script for Security -->
-    <script src="frontend/security.js"></script>
+<!-- ─── FOOTER ────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <div class="nav-logo-mark" style="width:24px;height:24px;border-radius:6px">
+        <svg width="12" height="12" viewBox="0 0 256 256" fill="white"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L56.18,130.22A8,8,0,0,1,57,114.54l112-120a8,8,0,0,1,13.69,7L168,94.87l46.64,35a8,8,0,0,1-.79,15.59Z"/></svg>
+      </div>
+      Collective AI
+    </div>
+    <ul class="footer-links">
+      <li><a href="frontend/terms.html">Terms</a></li>
+      <li><a href="frontend/privacy.html">Privacy</a></li>
+      <li><a href="frontend/uptime.html">Status</a></li>
+      <li><a href="https://github.com/SarthakMitra323/collective-ai" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+    <span class="footer-copy">© 2026 Sarthak Mitra</span>
+  </div>
+</footer>
 
-    <!-- CORE ANIMATION & UI LOGIC -->
-    <script>
-        // --- 0. Mobile Menu Logic ---
-        const menuToggle = document.getElementById('menu-toggle');
-        const navLinksContainer = document.getElementById('nav-links');
-        const mobileNavItems = document.querySelectorAll('.mobile-nav-item');
-        
-        // Unhide the "Login" link inside the mobile menu via JS 
-        // (so it stays hidden on desktop)
-        if (window.innerWidth <= 768) {
-            mobileNavItems[mobileNavItems.length - 1].style.display = 'block';
-        }
+<!-- ─── SCRIPTS ───────────────────────────────────────────────── -->
+<script>
+'use strict';
 
-        menuToggle.addEventListener('click', () => {
-            const isActive = navLinksContainer.classList.toggle('active');
-            const icon = menuToggle.querySelector('i');
-            
-            if(isActive) {
-                icon.classList.replace('ph-list', 'ph-x');
-                document.body.style.overflow = 'hidden'; // Prevent scrolling
-            } else {
-                icon.classList.replace('ph-x', 'ph-list');
-                document.body.style.overflow = '';
-            }
+document.documentElement.classList.remove('no-js');
+
+/* ── Lenis smooth scroll ── */
+const lenis = new Lenis({ duration: 1.1, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+requestAnimationFrame(raf);
+gsap.registerPlugin(ScrollTrigger);
+lenis.on('scroll', ScrollTrigger.update);
+
+/* ── Nav scroll state ── */
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 20);
+}, { passive: true });
+
+/* ── Mobile menu ── */
+const hamburger  = document.getElementById('hamburger');
+const navMobile  = document.getElementById('nav-mobile');
+let mobileOpen   = false;
+hamburger.addEventListener('click', () => {
+  mobileOpen = !mobileOpen;
+  navMobile.classList.toggle('open', mobileOpen);
+  document.body.style.overflow = mobileOpen ? 'hidden' : '';
+  const spans = hamburger.querySelectorAll('span');
+  if (mobileOpen) {
+    gsap.to(spans[0], { rotate: 45,  y: 6.5, duration: 0.3 });
+    gsap.to(spans[1], { opacity: 0,        duration: 0.2 });
+    gsap.to(spans[2], { rotate: -45, y: -6.5, duration: 0.3 });
+  } else {
+    gsap.to(spans,    { rotate: 0, y: 0, opacity: 1, duration: 0.3 });
+  }
+});
+function closeMobile() {
+  mobileOpen = false;
+  navMobile.classList.remove('open');
+  document.body.style.overflow = '';
+  gsap.to(hamburger.querySelectorAll('span'), { rotate: 0, y: 0, opacity: 1, duration: 0.3 });
+}
+window.closeMobile = closeMobile;
+
+/* ── GSAP scroll reveals ── */
+const revealConfig = {
+  '.reveal':       { y: 28,   opacity: 0 },
+  '.reveal-left':  { x: -24,  opacity: 0 },
+  '.reveal-right': { x: 24,   opacity: 0 },
+  '.reveal-scale': { scale: 0.96, opacity: 0 },
+};
+
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach((el, i) => {
+  // find which class it has
+  const cls = ['reveal-scale','reveal-left','reveal-right','reveal'].find(c => el.classList.contains(c));
+  const from = revealConfig['.'+cls];
+
+  // siblings stagger — elements with the same parent get staggered
+  const siblings = Array.from(el.parentElement.children).filter(c => c.classList.contains(cls) || c.classList.contains('reveal'));
+  const delay    = siblings.indexOf(el) * 0.07;
+
+  gsap.from(el, {
+    ...from,
+    duration: 0.9,
+    ease: 'power3.out',
+    delay,
+    scrollTrigger: {
+      trigger: el,
+      start: 'top 88%',
+      once: true,
+    }
+  });
+});
+
+/* ── Hero entrance ── */
+gsap.from('.hero-glow', { scale: 0.6, opacity: 0, duration: 2, ease: 'power2.out' });
+
+/* ── Animated stats (counting up) ── */
+function animateCount(el, target, suffix = '') {
+  gsap.to({ val: 0 }, {
+    val: target,
+    duration: 2,
+    ease: 'power2.out',
+    scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+    onUpdate: function () {
+      el.textContent = Math.round(this.targets()[0].val).toLocaleString() + suffix;
+    }
+  });
+}
+
+// Try to pull real counts from Firebase — fall back to placeholders
+(async () => {
+  try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js');
+    const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+    const fbApp = initializeApp({
+      apiKey: "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
+      authDomain: "collective-ai-auth.firebaseapp.com",
+      projectId: "collective-ai-auth",
+      storageBucket: "collective-ai-auth.firebasestorage.app",
+      messagingSenderId: "851370153534",
+      appId: "1:851370153534:web:484314623047fd110ca36f",
+    }, 'landing');
+    const db   = getFirestore(fbApp);
+    const snap = await getDocs(collection(db, 'contributions'));
+    const total  = snap.size;
+    const unique = new Set(snap.docs.map(d => d.data().userId)).size;
+    animateCount(document.getElementById('stat-contribs'), total);
+    animateCount(document.getElementById('stat-users'),    unique);
+  } catch {
+    animateCount(document.getElementById('stat-contribs'), 48);
+    animateCount(document.getElementById('stat-users'),    23);
+  }
+})();
+
+/* ─────────────────────────────────────────────────────────────
+   DEMO — typewriter animation triggered by ScrollTrigger
+   Plays through: question → AI answer → 2 community insights
+   Runs once when the demo window enters the viewport.
+───────────────────────────────────────────────────────────── */
+const DEMO = {
+  question: "What's the most effective way to learn a new programming language?",
+  answer:   "Start by building something you actually care about. Pick a small but real project — a CLI tool, a simple web app, a script that automates something tedious. This forces you to encounter genuine problems rather than contrived exercises, which is how retention happens. Supplement with the official docs and a focused tutorial for syntax basics, but return to your project as the primary driver.",
+  insights: [
+    {
+      initials: 'PK',
+      author:   'Priya K.',
+      role:     'Senior Software Engineer · 8 years',
+      text:     'After learning 6 languages professionally: the single biggest accelerant is reading other people\'s code in that language. Find a well-regarded open-source project and read its source — not to understand every line, but to absorb idioms and patterns.'
+    },
+    {
+      initials: 'TN',
+      author:   'Tom N.',
+      role:     'CS Lecturer · University of Edinburgh',
+      text:     'Spaced repetition for syntax (Anki works well) combined with daily coding removes the "I know the concept but can\'t remember the method name" problem. 20 minutes of practice every day beats 3-hour weekend sessions by a significant margin in my experience with students.'
+    }
+  ]
+};
+
+let demoPlayed = false;
+
+function typeText(el, text, speed, onDone) {
+  let i = 0;
+  function step() {
+    if (i <= text.length) {
+      el.textContent = text.slice(0, i);
+      i++;
+      setTimeout(step, speed + (Math.random() * speed * 0.4));
+    } else {
+      onDone && onDone();
+    }
+  }
+  step();
+}
+
+function playDemo() {
+  if (demoPlayed) return;
+  demoPlayed = true;
+
+  const qBubble     = document.getElementById('demo-q');
+  const qTextEl     = document.getElementById('demo-q-text');
+  const qCursor     = document.getElementById('q-cursor');
+  const answerCard  = document.getElementById('demo-answer');
+  const answerEl    = document.getElementById('demo-answer-text');
+  const aCursor     = document.getElementById('a-cursor');
+  const insLabel    = document.getElementById('insights-label');
+  const cardsWrap   = document.getElementById('insight-cards');
+
+  // Step 1 — show question bubble, type the question
+  setTimeout(() => {
+    qBubble.classList.add('visible');
+    typeText(qTextEl, DEMO.question, 22, () => {
+      qCursor.style.display = 'none';
+
+      // Step 2 — show answer card, type the answer
+      setTimeout(() => {
+        answerCard.classList.add('visible');
+        aCursor.style.display = 'inline-block';
+        typeText(answerEl, DEMO.answer, 9, () => {
+          aCursor.style.display = 'none';
+
+          // Step 3 — show insights label
+          setTimeout(() => {
+            insLabel.classList.add('visible');
+
+            // Step 4 — reveal insight cards one by one
+            DEMO.insights.forEach((ins, i) => {
+              const card = document.createElement('div');
+              card.className = 'demo-insight';
+              card.innerHTML = `
+                <div class="demo-insight-av">${ins.initials}</div>
+                <div class="demo-insight-meta">
+                  <div class="demo-insight-author">${ins.author} <span style="font-weight:400;color:var(--gray-4)">· ${ins.role}</span></div>
+                  <div class="demo-insight-text">${ins.text}</div>
+                </div>`;
+              cardsWrap.appendChild(card);
+              setTimeout(() => card.classList.add('visible'), 100 + i * 400);
+            });
+          }, 400);
         });
+      }, 600);
+    });
+  }, 300);
+}
 
-        // Close menu when clicking a link
-        mobileNavItems.forEach(item => {
-            item.addEventListener('click', () => {
-                navLinksContainer.classList.remove('active');
-                menuToggle.querySelector('i').classList.replace('ph-x', 'ph-list');
-                document.body.style.overflow = '';
-            });
-        });
+ScrollTrigger.create({
+  trigger: '#demo-window',
+  start: 'top 70%',
+  once: true,
+  onEnter: playDemo,
+});
+ScrollTrigger.refresh();
+</script>
 
-        // --- 1. Initialize Lenis Smooth Scrolling ---
-        const lenis = new Lenis({
-            duration: 1.2,
-            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            direction: 'vertical',
-            gestureDirection: 'vertical',
-            smooth: true,
-            mouseMultiplier: 1,
-            smoothTouch: false,
-            touchMultiplier: 2,
-        });
-
-        function raf(time) {
-            lenis.raf(time);
-            requestAnimationFrame(raf);
-        }
-        requestAnimationFrame(raf);
-
-        // Sync Lenis with GSAP ScrollTrigger
-        gsap.registerPlugin(ScrollTrigger);
-        lenis.on('scroll', ScrollTrigger.update);
-        gsap.ticker.add((time)=>{ lenis.raf(time * 1000) });
-        gsap.ticker.lagSmoothing(0);
-
-        // --- 2. Preloader Animation ---
-        window.addEventListener("load", () => {
-            const tl = gsap.timeline();
-            tl.to("#progress-bar", { width: "100%", duration: 1.5, ease: "power3.inOut" })
-              .to("#preloader", { yPercent: -100, duration: 0.8, ease: "power4.inOut" })
-              .set("body", { visibility: "visible" })
-              .call(initCinematicGSAP); // Start main animations
-        });
-
-        // --- 3. Main GSAP Timeline Integrations ---
-        function initCinematicGSAP() {
-            
-            // Hero Entrance
-            gsap.from(".hero-label", { y: 20, opacity: 0, duration: 1, delay: 0.2 });
-            gsap.from(".title-line", { y: 100, opacity: 0, duration: 1.2, stagger: 0.1, ease: "power4.out", delay: 0.4 });
-            gsap.from(".hero-desc, .hero-content .btn-primary", { y: 20, opacity: 0, duration: 1, stagger: 0.2, delay: 0.8 });
-
-            // Hero Scroll Scrub
-            gsap.to(".hero-content", {
-                scrollTrigger: { trigger: ".hero-section", start: "top top", end: "bottom top", scrub: true },
-                y: 150, scale: 0.95, opacity: 0, ease: "none"
-            });
-            gsap.to("#hero-bg", {
-                scrollTrigger: { trigger: ".hero-section", start: "top top", end: "bottom top", scrub: true },
-                scale: 1.5, opacity: 0, ease: "none"
-            });
-
-            // Navbar Glass Effect
-            ScrollTrigger.create({
-                start: "top -50", end: 99999, toggleClass: { className: "scrolled", targets: ".navbar" }
-            });
-
-            // --- PINNED STORY SEQUENCE ---
-            gsap.set(".step-text-1", { opacity: 1, y: 0 });
-            gsap.set(".step-text-2", { opacity: 0, y: 50 });
-            gsap.set(".step-text-3", { opacity: 0, y: 50 });
-            gsap.set(".step-img-1", { opacity: 1, scale: 1 });
-            gsap.set(".step-img-2", { opacity: 0, scale: 1.1 });
-            gsap.set(".step-img-3", { opacity: 0, scale: 1.1 });
-
-            const storyTl = gsap.timeline({
-                scrollTrigger: {
-                    trigger: "#story-trigger",
-                    start: "top top",
-                    end: "bottom bottom", 
-                    scrub: 1, 
-                    pin: "#story-pin", 
-                    anticipatePin: 1
-                }
-            });
-
-            // Transition 1 to 2
-            storyTl.to(".step-text-1", { opacity: 0, y: -50, duration: 1 })
-                   .to(".step-img-1", { opacity: 0, duration: 1 }, "<")
-                   .to(".step-text-2", { opacity: 1, y: 0, duration: 1 }, "<0.2")
-                   .to(".step-img-2", { opacity: 1, scale: 1, duration: 1 }, "<")
-                   .to({}, {duration: 0.5}) 
-                   
-            // Transition 2 to 3
-                   .to(".step-text-2", { opacity: 0, y: -50, duration: 1 })
-                   .to(".step-img-2", { opacity: 0, duration: 1 }, "<")
-                   .to(".step-text-3", { opacity: 1, y: 0, duration: 1 }, "<0.2")
-                   .to(".step-img-3", { opacity: 1, scale: 1, duration: 1 }, "<")
-                   .to({}, {duration: 0.5});
-
-            // Core CTA Box
-            gsap.from(".core-box", {
-                scrollTrigger: { trigger: ".core-section", start: "top 70%" },
-                y: 100, opacity: 0, duration: 1.5, ease: "power4.out"
-            });
-        }
-    </script>
 </body>
 </html>
-
