@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="no-js">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -70,10 +70,8 @@ img { display: block; max-width: 100%; }
 .container--wide   { max-width: 1200px; }
 
 /* ─── REVEAL ANIMATIONS (set by GSAP) ───────────────────────── */
-.reveal         { opacity: 0; transform: translateY(28px); }
-.reveal-left    { opacity: 0; transform: translateX(-24px); }
-.reveal-right   { opacity: 0; transform: translateX(24px); }
-.reveal-scale   { opacity: 0; transform: scale(0.96); }
+/* reveal classes — initial state managed by GSAP, not CSS */
+.reveal, .reveal-left, .reveal-right, .reveal-scale { will-change: opacity, transform; }
 
 /* ─── NAV ────────────────────────────────────────────────────── */
 .nav {
@@ -760,14 +758,6 @@ section { padding: 120px 0; }
   .hero { padding: 100px 20px 60px; }
   .hero-stat-row { gap: 24px; }
 }
-/* FAILSAFE: ensure content is visible if JS fails */
-.no-js .reveal,
-.no-js .reveal-left,
-.no-js .reveal-right,
-.no-js .reveal-scale {
-  opacity: 1 !important;
-  transform: none !important;
-}
 </style>
 </head>
 <body>
@@ -1035,14 +1025,18 @@ section { padding: 120px 0; }
 <script>
 'use strict';
 
-document.documentElement.classList.remove('no-js');
-
 /* ── Lenis smooth scroll ── */
-const lenis = new Lenis({ duration: 1.1, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
-requestAnimationFrame(raf);
+const lenis = new Lenis({
+  duration: 1.1,
+  easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+  smoothWheel: true,
+});
+// Correct Lenis + GSAP ScrollTrigger wiring:
+// Lenis drives its own RAF loop; ScrollTrigger listens to Lenis scroll events.
 gsap.registerPlugin(ScrollTrigger);
 lenis.on('scroll', ScrollTrigger.update);
+function lenisRaf(time) { lenis.raf(time); requestAnimationFrame(lenisRaf); }
+requestAnimationFrame(lenisRaf);
 
 /* ── Nav scroll state ── */
 const nav = document.getElementById('nav');
@@ -1075,38 +1069,63 @@ function closeMobile() {
 }
 window.closeMobile = closeMobile;
 
-/* ── GSAP scroll reveals ── */
-const revealConfig = {
-  '.reveal':       { y: 28,   opacity: 0 },
-  '.reveal-left':  { x: -24,  opacity: 0 },
-  '.reveal-right': { x: 24,   opacity: 0 },
-  '.reveal-scale': { scale: 0.96, opacity: 0 },
+/* ── GSAP scroll reveals ──
+   Uses gsap.fromTo() so GSAP fully owns the initial state — no CSS conflicts.
+   Hero elements are animated immediately (no ScrollTrigger) since they are
+   already in the viewport on page load and would never trigger a scroll event.
+── */
+const fromStates = {
+  reveal:       { opacity: 0, y: 28 },
+  'reveal-left':  { opacity: 0, x: -24 },
+  'reveal-right': { opacity: 0, x: 24 },
+  'reveal-scale': { opacity: 0, scale: 0.96 },
 };
+const toState = { opacity: 1, y: 0, x: 0, scale: 1, ease: 'power3.out', duration: 0.85 };
 
-document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach((el, i) => {
-  // find which class it has
-  const cls = ['reveal-scale','reveal-left','reveal-right','reveal'].find(c => el.classList.contains(c));
-  const from = revealConfig['.'+cls];
+// Separate hero reveals (in-viewport on load) from scroll reveals
+const heroEl   = document.getElementById('hero');
+const heroRevs = heroEl.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
+const allRevs  = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
 
-  // siblings stagger — elements with the same parent get staggered
-  const siblings = Array.from(el.parentElement.children).filter(c => c.classList.contains(cls) || c.classList.contains('reveal'));
-  const delay    = siblings.indexOf(el) * 0.07;
+// Set ALL reveals to invisible immediately so nothing flashes
+allRevs.forEach(el => gsap.set(el, { opacity: 0 }));
 
-  gsap.from(el, {
-    ...from,
-    duration: 0.9,
-    ease: 'power3.out',
+// Hero elements — staggered entrance, no ScrollTrigger needed
+heroRevs.forEach((el, i) => {
+  const cls  = ['reveal-scale','reveal-left','reveal-right','reveal'].find(c => el.classList.contains(c));
+  const from = { ...fromStates[cls] };
+  gsap.fromTo(el, from, { ...toState, delay: 0.1 + i * 0.12 });
+});
+
+// All other reveals — ScrollTrigger with fromTo
+allRevs.forEach(el => {
+  if (heroEl.contains(el)) return; // already handled above
+
+  const cls  = ['reveal-scale','reveal-left','reveal-right','reveal'].find(c => el.classList.contains(c));
+  const from = { ...fromStates[cls] };
+
+  // Siblings in same parent stagger
+  const siblings = Array.from(el.parentElement.children)
+    .filter(c => c.classList.contains('reveal') || c.classList.contains('reveal-scale') ||
+                 c.classList.contains('reveal-left') || c.classList.contains('reveal-right'));
+  const delay = siblings.indexOf(el) * 0.08;
+
+  gsap.fromTo(el, from, {
+    ...toState,
     delay,
     scrollTrigger: {
       trigger: el,
-      start: 'top 88%',
+      start: 'top 90%',
       once: true,
     }
   });
 });
 
-/* ── Hero entrance ── */
-gsap.from('.hero-glow', { scale: 0.6, opacity: 0, duration: 2, ease: 'power2.out' });
+/* ── Hero glow entrance ── */
+gsap.fromTo('.hero-glow',
+  { scale: 0.6, opacity: 0 },
+  { scale: 1,   opacity: 1, duration: 2, ease: 'power2.out' }
+);
 
 /* ── Animated stats (counting up) ── */
 function animateCount(el, target, suffix = '') {
@@ -1242,7 +1261,6 @@ ScrollTrigger.create({
   once: true,
   onEnter: playDemo,
 });
-ScrollTrigger.refresh();
 </script>
 
 </body>
