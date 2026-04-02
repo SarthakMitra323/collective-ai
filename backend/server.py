@@ -25,20 +25,23 @@ app = FastAPI(
     docs_url="/docs" if DEBUG_MODE else None
 )
 
-# CORS with proper validation
-allowed_origins = [origin.strip() for origin in ALLOWED_ORIGIN if origin.strip()]
-if "*" not in allowed_origins:
-    # Production: specific origins only
-    logger.info(f"CORS: Restricted to {allowed_origins}")
-else:
+# CORS with origin normalization (avoids mismatch from trailing slashes/spaces)
+allowed_origins = [origin.strip().rstrip("/") for origin in ALLOWED_ORIGIN if origin.strip()]
+if not allowed_origins:
+    allowed_origins = ["https://collective-ai.vercel.app"]
+
+allow_all_origins = "*" in allowed_origins
+if allow_all_origins:
     logger.warning("CORS: Allow All Origins (not recommended for production)")
+else:
+    logger.info(f"CORS: Restricted to {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins or ["*"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_origins=allowed_origins if not allow_all_origins else ["*"],
+    allow_credentials=not allow_all_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Initialize LLM
