@@ -1,153 +1,494 @@
-import os
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer, DataCollatorForLanguageModeling, pipeline
-from datasets import load_dataset
+from huggingface_hub import InferenceClient # type:ignore
+import sys
+import logging
+from typing import Optional, List, Dict
 
-# --- 1. Scalable Configuration ---
-CONFIG = {
-    "model_name": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",  
-    "dataset_id": "timdettmers/openassistant-guanaco", 
-    "output_dir": "./collective_ai_model",
-    "max_length": 1024, 
-    "batch_size": 1,    
-    "grad_accumulation": 8,   
-    "learning_rate": 2e-4,
-    "epochs": 1,        
-    "fp16": torch.cuda.is_available(),
-}
+try:
+    from .config import HF_TOKEN, HF_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS
+except ImportError:
+    from config import HF_TOKEN, HF_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS
 
-def get_device():
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.backends.mps.is_available():
-        return "mps"
-    return "cpu"
+if SUPPRESS_HF_LOGS:
+    logging.getLogger("huggingface_hub").setLevel(logging.CRITICAL)
+    logging.getLogger("transformers").setLevel(logging.CRITICAL)
+    logging.getLogger("sentence_transformers").setLevel(logging.CRITICAL)
 
-# --- PART A: TRAINING LOGIC ---
-def train_model():
-    print(f"🚀 Initializing Training Protocol on {get_device().upper()}...")
-    
-    tokenizer = AutoTokenizer.from_pretrained(CONFIG["model_name"])
-    if tokenizer.pad_token is None: 
-        tokenizer.pad_token = tokenizer.eos_token
+logging.basicConfig(
+    level=logging.DEBUG if DEBUG_MODE else logging.WARNING,
+    format='%(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-    print(f"🌍 Downloading Collective Knowledge: {CONFIG['dataset_id']}...")
-    dataset = load_dataset(CONFIG["dataset_id"], split="train") 
 
-    def process_data(samples):
-        return tokenizer(
-            samples["text"], truncation=True, max_length=CONFIG["max_length"], padding="max_length"
+class CollectiveModel:
+
+    @staticmethod
+    def _remove_repeated_paragraphs(text: str) -> str:
+        """Remove duplicate paragraphs while preserving order."""
+        parts = [p.strip() for p in text.split("\n\n") if p.strip()]
+        seen = set()
+        unique_parts: List[str] = []
+        for part in parts:
+            key = " ".join(part.lower().split())
+            if key in seen:
+                continue
+            seen.add(key)
+            unique_parts.append(part)
+        return "\n\n".join(unique_parts) if unique_parts else text.strip()
+
+    def __init__(self):
+        if not HF_TOKEN:
+            logger.error("HF_TOKEN not configured")
+            print("❌ ERROR: HF_TOKEN not set in .env")
+            print("   Visit: https://huggingface.co/settings/tokens")
+            self.client = None
+            self.model = HF_MODEL
+            return
+
+        try:
+            # Initialize with timeout for production reliability
+            self.client = InferenceClient(
+                api_key=HF_TOKEN,
+                timeout=REQUEST_TIMEOUT,
+                provider=HF_PROVIDER,
+            )
+            self.model = HF_MODEL
+            logger.info(f"LLM initialized: {self.model}")
+            print(f"🧠 LLM Ready: {self.model} via {HF_PROVIDER}")
+        except Exception:
+            logger.exception("Failed to initialize HuggingFace client")
+            self.client = None
+            self.model = HF_MODEL
+
+    @staticmethod
+    def _build_prompt(
+        user_input: str,
+        context_docs: Optional[List[str]] = None
+    ) -> str:
+        context_section = ""
+        if context_docs and len(context_docs) > 0:
+            context_section = "\n\nKnowledge base context:\n"
+            for i, doc in enumerate(context_docs[:3], 1):
+                doc_preview = doc[:180] + ("..." if len(doc) > 180 else "")
+                context_section += f"  {i}. {doc_preview}\n"
+        
+        prompt = (
+            f"Answer clearly and use prior turns for context.{context_section}\n\n"
+            f"Question: {user_input}"
+        )
+        return prompt
+
+    def _build_messages(
+        self,
+        user_input: str,
+        context_docs: Optional[List[str]] = None,
+        chat_history: Optional[List[Dict[str, str]]] = None,
+    ) -> List[Dict[str, str]]:
+        # Build chat-completion messages with short memory window.
+        messages: List[Dict[str, str]] = []
+
+        for msg in (chat_history or [])[-10:]:
+            role = msg.get("role", "")
+            content = msg.get("content", "").strip()
+            if role in ("user", "assistant") and content:
+                messages.append({"role": role, "content": content})
+
+        messages.append({
+            "role": "user",
+            "content": self._build_prompt(user_input, context_docs),
+        })
+        return messages
+
+    def _build_generation_prompt(self, messages: List[Dict[str, str]]) -> str:
+        """Convert role-based messages into a single instruction-style prompt."""
+        lines: List[str] = [
+            "<s>[INST]",
+            "You are Collective AI, a helpful assistant.",
+            "Use prior turns when relevant.",
+            "Reply with only the assistant answer.",
+            "Do not output role labels like 'User:' or 'Assistant:'.",
+            "",
+            "Conversation:",
+        ]
+
+        for msg in messages:
+            role = msg.get("role", "")
+            content = msg.get("content", "").strip()
+            if not content:
+                continue
+            if role == "assistant":
+                lines.append(f"Assistant: {content}")
+            else:
+                lines.append(f"User: {content}")
+
+        lines.append("")
+        lines.append("Now provide the assistant reply to the final user message only.")
+        lines.append("[/INST]")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _estimate_input_tokens(text: str) -> int:
+        """Roughly estimate tokens so we can keep requests inside the model window."""
+        return max(1, len(text) // 4)
+
+    def _generation_budget(self, prompt: str) -> int:
+        """Pick a safe output budget below the model context limit."""
+        prompt_tokens = self._estimate_input_tokens(prompt)
+        reserved_for_prompt = 64
+        remaining = 4096 - prompt_tokens - reserved_for_prompt
+        return max(64, min(512, remaining))
+
+    def _call_text_generation(self, messages: List[Dict[str, str]]) -> str:
+        """Call HF inference with automatic fallback between text and chat tasks."""
+        if self.client is None:
+            raise AttributeError("Inference client is not initialized")
+
+        client = self.client
+        prompt = self._build_generation_prompt(messages)
+        max_output_tokens = self._generation_budget(prompt)
+
+        try:
+            if hasattr(client, "text_generation"):
+                generation_kwargs: Dict[str, object] = {
+                    "model": self.model,
+                    "prompt": prompt,
+                    "temperature": 0.6,
+                    "repetition_penalty": 1.1,
+                    "return_full_text": False,
+                    "stop": ["\nUser:", "\n### User:"],
+                    "max_new_tokens": max_output_tokens,
+                }
+
+                out = client.text_generation(**generation_kwargs)
+                return str(out).strip()
+        except ValueError as e:
+            msg = str(e).lower()
+            # Some providers route this model under conversational only.
+            if "supported task" in msg and "conversational" in msg and hasattr(client, "chat_completion"):
+                chat_kwargs: Dict[str, object] = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": 0.6,
+                    "stop": ["\nUser:", "\n### User:"],
+                    "max_tokens": max_output_tokens,
+                }
+
+                out = client.chat_completion(**chat_kwargs)
+                return (out.choices[0].message.content or "").strip()
+            raise
+
+        raise AttributeError(
+            "InferenceClient generation APIs are unavailable. "
+            "Upgrade huggingface-hub to a newer version."
         )
 
-    print("🔄 Tokenizing data...")
-    tokenized_dataset = dataset.map(process_data, batched=True, remove_columns=dataset.column_names)
-
-    model = AutoModelForCausalLM.from_pretrained(CONFIG["model_name"])
-    model.to(get_device()) # type:ignore
-
-    training_args = TrainingArguments(
-        output_dir=CONFIG["output_dir"],
-        per_device_train_batch_size=CONFIG["batch_size"],
-        gradient_accumulation_steps=CONFIG["grad_accumulation"],
-        num_train_epochs=CONFIG["epochs"],
-        learning_rate=CONFIG["learning_rate"],
-        fp16=CONFIG["fp16"],
-        save_strategy="epoch",
-        logging_steps=50,
-        report_to="none"
-    )
-
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=tokenized_dataset,
-        data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
-    )
-
-    print("\n🔥 Starting Fine-Tuning...")
-    trainer.train()
-    
-    print(f"\n💾 Saving Collective AI to {CONFIG['output_dir']}...")
-    trainer.save_model()
-    tokenizer.save_pretrained(CONFIG["output_dir"])
-    print("✅ Training Complete.")
-
-# --- PART B: INFERENCE CLASS (For server.py) ---
-class CollectiveModel:
-    def __init__(self):
-        self.device = get_device()
-        self.model_path = CONFIG["output_dir"] if os.path.exists(CONFIG["output_dir"]) else CONFIG["model_name"]
-        print(f"🧠 Loading AI Model from: {self.model_path} ({self.device})")
+    def generate_response(
+        self,
+        user_input: str,
+        context_docs: Optional[List[str]] = None,
+        chat_history: Optional[List[Dict[str, str]]] = None,
+        show_thinking: bool = True
+    ) -> str:
+        """Generate response using HuggingFace text-generation API.
+        
+        Args:
+            user_input: User query
+            context_docs: Optional RAG context
+            show_thinking: Whether to print thinking indicators
+            
+        Returns:
+            str: Generated response
+        """
+        if not self.client:
+            return "❌ AI service not configured."
         
         try:
-            self.generator = pipeline(
-                "text-generation",
-                model=self.model_path,
-                tokenizer=self.model_path,
-                device_map="auto" if self.device == "cuda" else None,
-                dtype=torch.float16 if CONFIG["fp16"] else torch.float32
-            )
+            # Validate input
+            if not isinstance(user_input, str) or not user_input.strip():
+                return "❌ Please provide a valid question."
+            
+            user_input = user_input.strip()
+            context_docs = context_docs or []
+            
+            # Activity indicators for production feel
+            if show_thinking:
+                print("   🤔 Thinking...", end="", flush=True)
+            
+            # Format chat messages with context + history memory
+            messages = self._build_messages(user_input, context_docs, chat_history)
+            
+            if show_thinking:
+                print("\r✍️  Generating response...", end="", flush=True)
+            
+            response_text = self._call_text_generation(messages)
+            
+            # Clear thinking indicator
+            if show_thinking:
+                print("\r" + " " * 30 + "\r", end="", flush=True)
+            
+            # Clean up any <think> tags from output if present
+            response_text = response_text.replace("<think>", "").replace("</think>", "").strip()
+
+            # Remove role-play spillover if provider ignores stop sequences.
+            if response_text.startswith("Assistant:"):
+                response_text = response_text[len("Assistant:"):].strip()
+            if response_text.startswith("User question:"):
+                response_text = response_text[len("User question:"):].strip()
+            if response_text.startswith("Question:"):
+                response_text = response_text[len("Question:"):].strip()
+            for marker in ["\nUser:", "\nAssistant:", "\n[INST]", "</s>"]:
+                if marker in response_text:
+                    response_text = response_text.split(marker, 1)[0].strip()
+
+            response_text = self._remove_repeated_paragraphs(response_text)
+            
+            # Validate response
+            if not response_text or not response_text.strip():
+                return "I couldn't generate a response. Try again."
+            
+            return response_text.strip()
+            
+        except ValueError as e:
+            if show_thinking:
+                print("\r" + " " * 30 + "\r", end="", flush=True)
+            logger.warning(f"ValueError: {e}")
+            lower = str(e).lower()
+            if "not supported by any provider you have enabled" in lower:
+                return "❌ Provider routing error. Enable Featherless AI in Hugging Face Inference Providers, or set HF_PROVIDER to a provider that supports this model."
+            return "❌ Input error. Try again."
+        except AttributeError as e:
+            if show_thinking:
+                print("\r" + " " * 30 + "\r", end="", flush=True)
+            logger.error(f"AttributeError: {e}")
+            return "❌ Inference client is outdated. Update dependencies and retry."
+        except TimeoutError as e:
+            if show_thinking:
+                print("\r" + " " * 30 + "\r", end="", flush=True)
+            return "⏱️ Request timed out. Try again."
         except Exception as e:
-            print(f"❌ Failed to load model: {e}")
-            self.generator = None
+            if show_thinking:
+                print("\r" + " " * 30 + "\r", end="", flush=True)
+            error_msg = str(e).lower()
+            logger.error(f"Error: {type(e).__name__}: {e}")
+            
+            # Safe error messages
+            if "rate_limit" in error_msg:
+                return "⚠️ Rate limited. Wait a moment."
+            elif "unauthorized" in error_msg:
+                return "❌ Authentication failed."
+            else:
+                return "❌ Service error. Try again."
 
-    def generate_response(self, user_input, context_docs=[]):
-        if not self.generator:
-            return "Error: Neural Core Offline."
 
-        # RAG Prompt Construction (if context exists from rag.py)
-        system_prompt = "You are Collective AI, a wise assistant. Use the provided Context from the community to answer the user."
-        
-        context_block = ""
-        if context_docs:
-            context_block = "\nCONTEXT FROM COLLECTIVE MEMORY:\n" + "\n".join([f"- {doc}" for doc in context_docs]) + "\n"
-
-        # TinyLlama format
-        prompt = f"<|system|>\n{system_prompt}\n{context_block}</s>\n<|user|>\n{user_input}</s>\n<|assistant|>\n"
-        
-        sequences = self.generator(
-            prompt,
-            max_new_tokens=300, 
-            do_sample=True,
-            temperature=0.7,
-            top_k=50,
-            top_p=0.95,
-            pad_token_id=self.generator.tokenizer.eos_token_id # type:ignore
-        )
-        
-        full_text = sequences[0]['generated_text']
-        response = full_text.split("<|assistant|>\n")[-1].strip()
-        return response
-
-# --- PART C: STANDALONE CHAT INTERFACE ---
-def run_chat_interface():
-    print("\n💬 Loading Collective AI Chat Interface...")
-    ai = CollectiveModel()
-    if not ai.generator: return
+# --- Production Chatbot CLI ---
+def interactive_chat(rag_system=None):
+    """Production-ready interactive chatbot with clean output."""
+    model = CollectiveModel()
+    if not model.client:
+        print("❌ Cannot start chat: LLM not initialized")
+        return
     
-    print("\n✨ Collective AI is Online. Type 'exit' to quit.")
-    print("-" * 50)
+    # Lazy-load RAG silently
+    def get_rag_system():
+        nonlocal rag_system
+        if rag_system is None:
+            # Suppress all output during initialization
+            import io
+            from contextlib import redirect_stdout, redirect_stderr
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                from rag import KnowledgeBase
+                rag_system = KnowledgeBase()
+        return rag_system
+    
+    # Clean welcome
+    print("\n" + "="*70)
+    print("  💬 COLLECTIVE AI - CHAT")
+    print("="*70)
+    print("  Type 'help' for commands, 'exit' to quit\n")
+
+    # Session memory: stores recent user/assistant turns.
+    chat_history: List[Dict[str, str]] = []
     
     while True:
         try:
-            user_input = input("You: ")
-            if user_input.lower() in ["exit", "quit"]: break
-            print(f"AI: {ai.generate_response(user_input)}")
-            print("-" * 50)
+            user_input = input("You: ").strip()
+            
+            if not user_input:
+                continue
+            
+            # Commands
+            if user_input.lower() == "help":
+                print("\nAvailable commands:")
+                print("  add <text>      - Save knowledge for future reference")
+                print("  search <query>  - Search your knowledge base")
+                print("  list            - Show recent knowledge")
+                print("  exit            - Exit chat\n")
+                continue
+            
+            if user_input.lower() in ["exit", "quit"]:
+                print("\n👋 Goodbye!\n")
+                break
+            
+            # RAG add command
+            if user_input.startswith("add "):
+                text = user_input[4:].strip()
+                if len(text) < 10:
+                    print("❌ Text too short (min 10 characters)\n")
+                    continue
+                print("   💾 Saving...", end="", flush=True)
+                get_rag_system().add_document(text, user_id="cli_user")
+                print("\r✅ Saved to knowledge base\n", flush=True)
+                continue
+            
+            # RAG search command
+            if user_input.startswith("search "):
+                query = user_input[7:].strip()
+                print("   🔍 Searching...", end="", flush=True)
+                results = get_rag_system().search(query, n_results=3)
+                print("\r" + " " * 30 + "\r", end="", flush=True)
+                if results:
+                    print(f"\nFound {len(results)} result{'s' if len(results) > 1 else ''}:")
+                    for i, doc in enumerate(results, 1):
+                        preview = doc[:100] + "..." if len(doc) > 100 else doc
+                        print(f"  {i}. {preview}")
+                else:
+                    print("No results found.")
+                print()
+                continue
+            
+            # RAG list command
+            if user_input == "list":
+                docs = get_rag_system().list_documents(limit=5)
+                if docs:
+                    print(f"\nRecent knowledge ({len(docs)} items):")
+                    for i, (doc_id, text, user_id, source, _) in enumerate(docs, 1):
+                        preview = text[:60] + "..." if len(text) > 60 else text
+                        print(f"  {i}. {preview}")
+                else:
+                    print("No knowledge saved yet.")
+                print()
+                continue
+            
+            # Regular chat with RAG context
+            print()  # Newline before response
+            context = get_rag_system().search(user_input, n_results=2)
+            response = model.generate_response(
+                user_input,
+                context,
+                chat_history=chat_history,
+                show_thinking=True,
+            )
+            print(f"AI: {response}\n")
+
+            chat_history.append({"role": "user", "content": user_input})
+            chat_history.append({"role": "assistant", "content": response})
+            if len(chat_history) > 20:
+                chat_history = chat_history[-20:]
+                
         except KeyboardInterrupt:
+            print("\n\n👋 Chat interrupted.\n")
             break
+        except Exception as e:
+            print(f"\n❌ Error: {str(e)}\n")
+
+
+# --- CLI for RAG Management ---
+def rag_cli():
+    """CLI for managing RAG knowledge base - production version."""
+    # Suppress all output during RAG initialization
+    import io
+    from contextlib import redirect_stdout, redirect_stderr
+    
+    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        from rag import KnowledgeBase
+        kb = KnowledgeBase()
+    
+    print("\n" + "="*70)
+    print("  📚 COLLECTIVE AI - KNOWLEDGE BASE")
+    print("="*70)
+    print("  Manage your knowledge base\n")
+    
+    while True:
+        try:
+            print("Options: 1=Add  2=Search  3=List  4=Delete  5=Chat  6=Exit")
+            choice = input("Choose: ").strip()
+            
+            if choice == "1":
+                print("  Enter document text:")
+                text = input("  > ").strip()
+                if len(text) < 10:
+                    print("  ❌ Too short (min 10 chars)\n")
+                    continue
+                user_id = input("  User ID (or Enter for anonymous): ").strip() or "anonymous"
+                print("  💾 Saving...", end="", flush=True)
+                kb.add_document(text, user_id=user_id, source="cli")
+                print("\r  ✅ Saved!\n", flush=True)
+                
+            elif choice == "2":
+                query = input("  Search query: ").strip()
+                print("  🔍 Searching...", end="", flush=True)
+                results = kb.search(query, n_results=3)
+                print("\r" + " " * 30 + "\r", end="", flush=True)
+                if results:
+                    print(f"  Found {len(results)} result{'s' if len(results) > 1 else ''}:")
+                    for i, doc in enumerate(results, 1):
+                        print(f"    {i}. {doc[:100]}...")
+                else:
+                    print("  No results found.")
+                print()
+                
+            elif choice == "3":
+                docs = kb.list_documents(limit=5)
+                if docs:
+                    print(f"  Recent knowledge ({kb.count()} total):")
+                    for i, (doc_id, text, user_id, source, _) in enumerate(docs, 1):
+                        preview = text[:70] + "..." if len(text) > 70 else text
+                        print(f"    {i}. {preview}")
+                else:
+                    print("  No knowledge saved yet.")
+                print()
+                
+            elif choice == "4":
+                doc_id = input("  Document ID: ").strip()
+                kb.delete_document(doc_id)
+                print()
+                
+            elif choice == "5":
+                print()
+                interactive_chat(kb)
+                print()
+                
+            elif choice == "6":
+                print("\n  👋 Goodbye!\n")
+                break
+            else:
+                print("  ❌ Invalid option\n")
+                
+        except KeyboardInterrupt:
+            print("\n\n  👋 Interrupted.\n")
+            break
+        except Exception as e:
+            print(f"❌ Error: {e}\n")
+
 
 if __name__ == "__main__":
-    print("Select Mode:")
-    print("1. Train Model (Fine-tune on Dataset)")
-    print("2. Run Chatbot (Terminal Inference Mode)")
-    print("Note: To run the web API, execute server.py instead.")
+    print("🤖 Collective AI - Startup Mode")
+    print("\nSelect mode:")
+    print("1. RAG Management CLI (add/search documents)")
+    print("2. Interactive Chat")
+    print("3. Run via API server (execute server.py instead)\n")
     
-    choice = input("Enter 1 or 2: ").strip()
+    if len(sys.argv) > 1:
+        mode = sys.argv[1]
+    else:
+        mode = input("Choose mode (1, 2, or 3): ").strip()
     
-    if choice == "1":
-        train_model()
-    elif choice == "2":
-        run_chat_interface()
+    if mode == "1":
+        rag_cli()
+    elif mode == "2":
+        # Chat starts immediately, RAG loads only when needed
+        interactive_chat()
+    elif mode == "3":
+        print("Please run 'python server.py' instead.")
     else:
         print("Invalid selection.")
