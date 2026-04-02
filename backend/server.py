@@ -1,4 +1,5 @@
 import os
+import asyncio
 from fastapi import FastAPI, HTTPException #type:ignore
 from fastapi.middleware.cors import CORSMiddleware  #type:ignore
 from pydantic import BaseModel
@@ -235,11 +236,15 @@ async def chat_endpoint(request: ChatRequest):
             logger.debug("No context docs found")
 
         # 2. Generate response with RAG context
-        response_text = engine.generate_response(
-            request.message,
-            context_docs,
-            chat_history=chat_history,
-            show_thinking=False,
+        response_text = await asyncio.wait_for(
+            asyncio.to_thread(
+                engine.generate_response,
+                request.message,
+                context_docs,
+                chat_history,
+                False,
+            ),
+            timeout=45,
         )
         logger.info(f"Response generated: {len(response_text)} chars")
 
@@ -253,6 +258,9 @@ async def chat_endpoint(request: ChatRequest):
             "context_used": len(context_docs),
             "status": "success"
         }
+    except TimeoutError:
+        logger.warning("Chat generation timed out after 45s")
+        raise HTTPException(status_code=504, detail="AI response timed out")
     except Exception as e:
         logger.exception(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
