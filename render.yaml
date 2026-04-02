@@ -2,16 +2,39 @@ services:
   - type: web
     name: collective-ai-backend
     runtime: python
-    pythonVersion: "3.11"
-    plan: free
-    rootDir: backend
+    pythonVersion: 3.11
+    plan: standard
     buildCommand: pip install -r requirements.txt
-    # server.py is inside backend/, so module path is just "server:app"
-    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn backend.server:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
       - key: PYTHONUNBUFFERED
-        value: "true"
+        value: true
       - key: ALLOWED_ORIGIN
-        value: https://collective-ai.vercel.app   # update to your Vercel URL
-    healthCheckPath: /
+        value: https://collective-ai.vercel.app
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX
+        value: collective-ai-rag
+      - key: PINECONE_CLOUD
+        value: aws
+      - key: PINECONE_REGION
+        value: us-east-1
+      - key: VECTOR_DIMENSION
+        value: 384
     autoDeploy: true
+    domains:
+      - key: RENDER_EXTERNAL_HOSTNAME
+    routes:
+      - path: /
+        matchType: prefix
+        priority: 10
+    healthCheckPath: /
+    timeout: 300
+    scaling:
+      minInstances: 1
+      maxInstances: 4
+      targetMemoryPercent: 60
+      targetCPUPercent: 70
+    pullRequestPreviewsEnabled: true
