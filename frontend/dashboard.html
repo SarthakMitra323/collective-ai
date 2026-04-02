@@ -345,8 +345,9 @@ const{initializeApp}=await import('https://www.gstatic.com/firebasejs/11.6.1/fir
 const{getAuth,onAuthStateChanged,signOut}=await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
 const{getFirestore,collection,doc,addDoc,getDocs,deleteDoc,serverTimestamp,query,orderBy,onSnapshot}=await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
 
-const BACKEND = 'https://collective-ai-backend.onrender.com'
-  
+const BACKEND = location.hostname === 'localhost'
+  ? 'http://localhost:8000'
+  : 'https://collective-ai-backend.onrender.com';
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
@@ -416,13 +417,49 @@ ui.setHandleSend(async function(text){
   try{await addDoc(mCol(ui.curSess.id),{role:'user',text,createdAt:serverTimestamp()});}catch{}
   const lid=ui.addLoader();
   try{
-    const res=await fetch(BACKEND+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,sessionId:ui.curSess.id,userId:me.uid})});
+    async function fetchChatOnce(timeoutMs){
+      const controller=new AbortController();
+      const timer=setTimeout(function(){ controller.abort(); }, timeoutMs);
+      try{
+        return await fetch(BACKEND+'/api/chat',{
+          method:'POST',
+          mode:'cors',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({message:text,sessionId:ui.curSess.id,userId:me.uid}),
+          signal:controller.signal
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    let res;
+    try{
+      res=await fetchChatOnce(50000);
+    }catch(firstErr){
+      // Retry once for transient gateway/network failures.
+      await new Promise(function(r){ setTimeout(r, 1200); });
+      res=await fetchChatOnce(50000);
+    }
+
     ui.removeLoader(lid);
     if(!res.ok)throw new Error('HTTP '+res.status);
     const data=await res.json(),reply=data.reply||'\u2026';
     ui.addMsg('ai',reply,false);
     try{await addDoc(mCol(ui.curSess.id),{role:'ai',text:reply,createdAt:serverTimestamp()});}catch{}
-  }catch(err){ui.removeLoader(lid);ui.addMsg('ai','\u26a0\ufe0f Backend unreachable \u2014 is your server running?',false);console.error(err);}
+  }catch(err){
+    ui.removeLoader(lid);
+    var msg='\u26a0\ufe0f Network request failed. Please try again.';
+    if(err&&err.name==='AbortError') msg='\u23f1\ufe0f Request timed out. Please retry.';
+    else if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0) msg='\u26a0\ufe0f Server error ('+err.message.replace('HTTP ','')+'). Please retry.';
+    ui.addMsg('ai',msg,false);
+    console.error('Chat fetch failed',{
+      errorName: err&&err.name,
+      errorMessage: err&&err.message,
+      backend: BACKEND,
+      online: navigator.onLine
+    });
+  }
   ui.busy=false;ui.renderSessions();
 });
 
