@@ -44,14 +44,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize LLM
+# Lazy-load model and knowledge base
 logger.info("Initializing Collective AI Backend...")
-ai_engine = CollectiveModel()
-logger.info("✅ Backend Ready - RAG loads on first request")
-
-# Lazy-load knowledge base
+ai_engine = None
 _knowledge_base = None
 _session_histories: dict[str, list[dict[str, str]]] = {}
+
+def get_ai_engine():
+    global ai_engine
+    if ai_engine is None:
+        ai_engine = CollectiveModel()
+    return ai_engine
 
 def get_knowledge_base():
     global _knowledge_base
@@ -116,12 +119,18 @@ async def health_check():
     
     # Check LLM
     try:
-        if ai_engine.client and ai_engine.model:
-            health["services"]["llm"] = "✅ ready"
+        engine = get_ai_engine()
+        if engine.client or engine._init_error is not None:
+            if engine.client:
+                health["services"]["llm"] = "✅ ready"
+            else:
+                llm_error = engine._init_error or "unknown error"
+                health["services"]["llm"] = f"❌ {llm_error[:60]}"
+                health["errors"].append(f"LLM init failed: {llm_error}"
+                )
+                health["status"] = "degraded"
         else:
-            health["services"]["llm"] = "❌ not configured"
-            health["errors"].append("LLM client not initialized")
-            health["status"] = "degraded"
+            health["services"]["llm"] = "✅ ready"
     except Exception as e:
         health["services"]["llm"] = f"❌ error: {str(e)[:60]}"
         health["errors"].append(f"LLM error: {e}")
@@ -211,6 +220,7 @@ async def chat_endpoint(request: ChatRequest):
     logger.debug(f"Chat request from session: {request.sessionId}")
     
     try:
+        engine = get_ai_engine()
         session_key = (request.sessionId or request.userId or "default").strip()
         if session_key not in _session_histories:
             _session_histories[session_key] = []
@@ -225,7 +235,7 @@ async def chat_endpoint(request: ChatRequest):
             logger.debug("No context docs found")
 
         # 2. Generate response with RAG context
-        response_text = ai_engine.generate_response(
+        response_text = engine.generate_response(
             request.message,
             context_docs,
             chat_history=chat_history,

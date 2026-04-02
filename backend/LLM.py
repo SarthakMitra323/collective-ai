@@ -37,28 +37,38 @@ class CollectiveModel:
         return "\n\n".join(unique_parts) if unique_parts else text.strip()
 
     def __init__(self):
+        self.client = None
+        self.model = HF_MODEL
+        self._init_error = None
         if not HF_TOKEN:
-            logger.error("HF_TOKEN not configured")
-            print("❌ ERROR: HF_TOKEN not set in .env")
-            print("   Visit: https://huggingface.co/settings/tokens")
-            self.client = None
-            self.model = HF_MODEL
+            self._init_error = "HF_TOKEN not configured"
+            logger.error(self._init_error)
             return
 
+    def _init_client(self):
+        """Initialize the HF client lazily on first generation."""
+        if self.client is not None:
+            return self.client
+
+        if self._init_error:
+            raise RuntimeError(self._init_error)
+
+        if not HF_TOKEN:
+            self._init_error = "HF_TOKEN not configured"
+            raise RuntimeError(self._init_error)
+
         try:
-            # Initialize with timeout for production reliability
             self.client = InferenceClient(
                 api_key=HF_TOKEN,
                 timeout=REQUEST_TIMEOUT,
                 provider=HF_PROVIDER,
             )
-            self.model = HF_MODEL
             logger.info(f"LLM initialized: {self.model}")
-            print(f"🧠 LLM Ready: {self.model} via {HF_PROVIDER}")
-        except Exception:
+            return self.client
+        except Exception as e:
+            self._init_error = str(e)
             logger.exception("Failed to initialize HuggingFace client")
-            self.client = None
-            self.model = HF_MODEL
+            raise RuntimeError(f"Failed to initialize HuggingFace client: {e}")
 
     @staticmethod
     def _build_prompt(
@@ -87,7 +97,7 @@ class CollectiveModel:
         # Build chat-completion messages with short memory window.
         messages: List[Dict[str, str]] = []
 
-        for msg in (chat_history or [])[-10:]:
+        for msg in (chat_history or [])[-6:]:
             role = msg.get("role", "")
             content = msg.get("content", "").strip()
             if role in ("user", "assistant") and content:
@@ -103,11 +113,9 @@ class CollectiveModel:
         """Convert role-based messages into a single instruction-style prompt."""
         lines: List[str] = [
             "<s>[INST]",
-            "You are Collective AI, a helpful assistant.",
-            "Use prior turns when relevant.",
-            "Reply with only the assistant answer.",
-            "Do not output role labels like 'User:' or 'Assistant:'.",
-            "",
+            "You are Collective AI.",
+            "Answer the user clearly and concisely.",
+            "Do not output role labels.",
             "Conversation:",
         ]
 
@@ -134,16 +142,13 @@ class CollectiveModel:
     def _generation_budget(self, prompt: str) -> int:
         """Pick a safe output budget below the model context limit."""
         prompt_tokens = self._estimate_input_tokens(prompt)
-        reserved_for_prompt = 64
+        reserved_for_prompt = 48
         remaining = 4096 - prompt_tokens - reserved_for_prompt
-        return max(64, min(512, remaining))
+        return max(64, min(256, remaining))
 
     def _call_text_generation(self, messages: List[Dict[str, str]]) -> str:
         """Call HF inference with automatic fallback between text and chat tasks."""
-        if self.client is None:
-            raise AttributeError("Inference client is not initialized")
-
-        client = self.client
+        client = self._init_client()
         prompt = self._build_generation_prompt(messages)
         max_output_tokens = self._generation_budget(prompt)
 
@@ -152,11 +157,12 @@ class CollectiveModel:
                 generation_kwargs: Dict[str, object] = {
                     "model": self.model,
                     "prompt": prompt,
-                    "temperature": 0.6,
+                    "temperature": 0.3,
                     "repetition_penalty": 1.1,
                     "return_full_text": False,
                     "stop": ["\nUser:", "\n### User:"],
                     "max_new_tokens": max_output_tokens,
+                    "do_sample": False,
                 }
 
                 out = client.text_generation(**generation_kwargs)
@@ -168,7 +174,7 @@ class CollectiveModel:
                 chat_kwargs: Dict[str, object] = {
                     "model": self.model,
                     "messages": messages,
-                    "temperature": 0.6,
+                    "temperature": 0.3,
                     "stop": ["\nUser:", "\n### User:"],
                     "max_tokens": max_output_tokens,
                 }
@@ -199,9 +205,6 @@ class CollectiveModel:
         Returns:
             str: Generated response
         """
-        if not self.client:
-            return "❌ AI service not configured."
-        
         try:
             # Validate input
             if not isinstance(user_input, str) or not user_input.strip():
