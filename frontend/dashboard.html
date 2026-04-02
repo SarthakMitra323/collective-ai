@@ -345,9 +345,8 @@ const{initializeApp}=await import('https://www.gstatic.com/firebasejs/11.6.1/fir
 const{getAuth,onAuthStateChanged,signOut}=await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
 const{getFirestore,collection,doc,addDoc,getDocs,deleteDoc,serverTimestamp,query,orderBy,onSnapshot}=await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
 
-const BACKEND = location.hostname === 'localhost'
-  ? 'http://localhost:8000'
-  : 'https://collective-ai-backend.onrender.com';
+const BACKEND = 'https://collective-ai-backend.onrender.com'
+  
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
