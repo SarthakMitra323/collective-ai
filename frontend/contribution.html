@@ -736,9 +736,7 @@ import { getFirestore, collection, doc, addDoc, setDoc,
 import { getStorage, ref as sRef, uploadString,
          getDownloadURL, deleteObject }          from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-const BACKEND = location.hostname === 'localhost'
-  ? 'http://localhost:8000'
-  : 'https://collective-ai-backend.onrender.com';
+const BACKEND = 'https://collective-ai-backend.onrender.com'
 
 const app  = initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
