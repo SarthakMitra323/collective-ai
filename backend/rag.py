@@ -32,19 +32,18 @@ logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
 class KnowledgeBase:
     def __init__(self, verbose=False):
-        """Initialize Pinecone-backed Knowledge Base (lazy-loads embedder)."""
+        """Initialize Pinecone-backed Knowledge Base (lazy-loads embedder and Pinecone)."""
         self._embedder = None  # Lazy-load on first use
         self._pc = None
         self._index = None
+        self._init_error = None  # Store any startup errors
         self.verbose = verbose
         
         if self.verbose:
             print("📚 Initializing Collective Memory (Pinecone)...")
         
-        self._init_db()
-        
-        if self.verbose:
-            print(f"✅ Memory Online. Documents indexed: {self.count()}")
+        # Lazy init - don't crash startup if Pinecone fails
+        # _init_db is called on first RAG operation
 
     @property
     def embedder(self):
@@ -64,35 +63,51 @@ class KnowledgeBase:
         return self._embedder
 
     def _init_db(self):
-        """Create/connect Pinecone index."""
-        if not PINECONE_API_KEY:
-            raise RuntimeError("PINECONE_API_KEY is not set")
+        """Create/connect Pinecone index (lazy, called on first use)."""
+        if self._index is not None:
+            return  # Already initialized
+        
+        if self._init_error:
+            raise RuntimeError(f"Pinecone initialization failed: {self._init_error}")
+        
+        try:
+            if not PINECONE_API_KEY:
+                self._init_error = "PINECONE_API_KEY is not set"
+                raise RuntimeError(self._init_error)
 
-        self._pc = Pinecone(api_key=PINECONE_API_KEY)
+            self._pc = Pinecone(api_key=PINECONE_API_KEY)
 
-        index_list = self._pc.list_indexes()
-        if hasattr(index_list, "names"):
-            existing_indexes = set(index_list.names())
-        else:
-            existing_indexes = {
-                idx.get("name")
-                for idx in index_list
-                if isinstance(idx, dict) and idx.get("name")
-            }
+            index_list = self._pc.list_indexes()
+            if hasattr(index_list, "names"):
+                existing_indexes = set(index_list.names())
+            else:
+                existing_indexes = {
+                    idx.get("name")
+                    for idx in index_list
+                    if isinstance(idx, dict) and idx.get("name")
+                }
 
-        if PINECONE_INDEX not in existing_indexes:
-            self._pc.create_index(
-                name=PINECONE_INDEX,
-                dimension=VECTOR_DIMENSION,
-                metric="cosine",
-                spec=ServerlessSpec(cloud=PINECONE_CLOUD, region=PINECONE_REGION),
-            )
+            if PINECONE_INDEX not in existing_indexes:
+                self._pc.create_index(
+                    name=PINECONE_INDEX,
+                    dimension=VECTOR_DIMENSION,
+                    metric="cosine",
+                    spec=ServerlessSpec(cloud=PINECONE_CLOUD, region=PINECONE_REGION),
+                )
 
-        self._index = self._pc.Index(PINECONE_INDEX)
+            self._index = self._pc.Index(PINECONE_INDEX)
+        except Exception as e:
+            self._init_error = str(e)
+            raise RuntimeError(f"Pinecone initialization failed: {e}")
 
     def _require_index(self):
+        """Ensure Pinecone is initialized, lazy-init if needed."""
         if self._index is None:
-            raise RuntimeError("Pinecone index is not initialized")
+            self._init_db()  # Lazy init on first use, raises if fails
+        
+        # After _init_db(), _index must be set (or exception was raised)
+        if self._index is None:
+            raise RuntimeError("Pinecone index initialization did not set _index")
         return self._index
 
     @staticmethod

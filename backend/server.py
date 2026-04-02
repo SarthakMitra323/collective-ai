@@ -94,9 +94,65 @@ def home():
             "chat": "POST /api/chat",
             "contribute": "POST /api/contribute",
             "search": "POST /api/search",
-            "memory_stats": "GET /api/stats"
+            "memory_stats": "GET /api/stats",
+            "health": "GET /api/health"
         }
     }
+
+@app.get("/api/health")
+async def health_check():
+    """Detailed health check for debugging startup issues."""
+    import sys
+    health = {
+        "status": "ok",
+        "services": {
+            "llm": "⚠️ unchecked",
+            "rag": "⚠️ unchecked",
+            "pinecone": "⚠️ unchecked",
+        },
+        "errors": [],
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
+    }
+    
+    # Check LLM
+    try:
+        if ai_engine.client and ai_engine.model:
+            health["services"]["llm"] = "✅ ready"
+        else:
+            health["services"]["llm"] = "❌ not configured"
+            health["errors"].append("LLM client not initialized")
+            health["status"] = "degraded"
+    except Exception as e:
+        health["services"]["llm"] = f"❌ error: {str(e)[:60]}"
+        health["errors"].append(f"LLM error: {e}")
+        health["status"] = "degraded"
+    
+    # Check RAG/Pinecone
+    try:
+        kb = get_knowledge_base()
+        if kb._init_error:
+            health["services"]["rag"] = f"❌ {kb._init_error[:60]}"
+            health["services"]["pinecone"] = f"❌ {kb._init_error[:60]}"
+            health["errors"].append(f"Pinecone init failed: {kb._init_error}")
+            health["status"] = "degraded"
+        else:
+            # Try to query count
+            try:
+                doc_count = kb.count()
+                health["services"]["rag"] = f"✅ ready ({doc_count} docs)"
+                health["services"]["pinecone"] = "✅ connected"
+            except Exception as e:
+                health["services"]["rag"] = f"⚠️ query error: {str(e)[:60]}"
+                health["services"]["pinecone"] = f"⚠️ query error: {str(e)[:60]}"
+                health["errors"].append(f"RAG query error: {e}")
+                health["status"] = "degraded"
+    except Exception as e:
+        health["services"]["rag"] = f"❌ load error: {str(e)[:60]}"
+        health["services"]["pinecone"] = f"❌ load error: {str(e)[:60]}"
+        health["errors"].append(f"RAG load error: {e}")
+        health["status"] = "degraded"
+    
+    return health
 
 @app.get("/api/stats")
 async def memory_stats():
