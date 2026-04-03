@@ -376,8 +376,10 @@ class CollectiveModel:
 def interactive_chat(rag_system=None):
     """Production-ready interactive chatbot with clean output."""
     model = CollectiveModel()
-    if not model.client:
-        print("❌ Cannot start chat: LLM not initialized")
+    try:
+        model._init_client()
+    except Exception as e:
+        print(f"❌ Cannot start chat: LLM not initialized ({e})")
         return
     
     # Lazy-load RAG silently
