@@ -454,7 +454,11 @@ ui.setHandleSend(async function(text){
     ui.removeLoader(lid);
     var msg='\u26a0\ufe0f Network request failed. Please try again.';
     if(err&&err.name==='AbortError') msg='\u23f1\ufe0f Request timed out. Please retry.';
-    else if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0) msg='\u26a0\ufe0f Server error ('+err.message.replace('HTTP ','')+'). Please retry.';
+    else if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0){
+      var code=err.message.replace('HTTP ','');
+      if(code==='504') msg='\u23f1\ufe0f Backend timed out while generating. Please retry.';
+      else msg='\u26a0\ufe0f Server error ('+code+'). Please retry.';
+    }
     ui.addMsg('ai',msg,false);
     console.error('Chat fetch failed',{
       errorName: err&&err.name,
