@@ -4,9 +4,9 @@ import logging
 from typing import Optional, List, Dict
 
 try:
-    from .config import HF_TOKEN, HF_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
+    from .config import HF_TOKEN, HF_MODEL, HF_FALLBACK_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
 except ImportError:
-    from config import HF_TOKEN, HF_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
+    from config import HF_TOKEN, HF_MODEL, HF_FALLBACK_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
 
 if SUPPRESS_HF_LOGS:
     logging.getLogger("huggingface_hub").setLevel(logging.CRITICAL)
@@ -39,6 +39,7 @@ class CollectiveModel:
     def __init__(self):
         self.client = None
         self.model = HF_MODEL
+        self.fallback_model = HF_FALLBACK_MODEL if HF_FALLBACK_MODEL else None
         self._init_error = None
         self._generation_api_mode: Optional[str] = None
         if not HF_TOKEN:
@@ -77,8 +78,8 @@ class CollectiveModel:
             logger.exception("Failed to initialize HuggingFace client")
             raise RuntimeError(f"Failed to initialize HuggingFace client: {e}")
 
-    def _resolved_model(self) -> str:
-        model = self.model
+    def _resolved_model(self, model: Optional[str] = None) -> str:
+        model = model or self.model
         provider = HF_PROVIDER.lower() if HF_PROVIDER else ""
         if provider in {"auto", "featherless-ai"}:
             provider = ""
@@ -180,9 +181,9 @@ class CollectiveModel:
             return "chat"
         return "text"
 
-    def _call_chat_completion(self, client, messages: List[Dict[str, str]], max_output_tokens: int) -> str:
+    def _call_chat_completion(self, client, messages: List[Dict[str, str]], max_output_tokens: int, model: Optional[str] = None) -> str:
         chat_kwargs: Dict[str, object] = {
-            "model": self._resolved_model(),
+            "model": self._resolved_model(model),
             "messages": messages,
             "temperature": 0.3,
             "stop": ["\nUser:", "\n### User:"],
@@ -191,9 +192,9 @@ class CollectiveModel:
         out = client.chat_completion(**chat_kwargs)
         return (out.choices[0].message.content or "").strip()
 
-    def _call_text_completion(self, client, prompt: str, max_output_tokens: int) -> str:
+    def _call_text_completion(self, client, prompt: str, max_output_tokens: int, model: Optional[str] = None) -> str:
         generation_kwargs: Dict[str, object] = {
-            "model": self._resolved_model(),
+            "model": self._resolved_model(model),
             "prompt": prompt,
             "temperature": 0.3,
             "repetition_penalty": 1.1,
@@ -211,31 +212,55 @@ class CollectiveModel:
         prompt = self._build_generation_prompt(messages)
         max_output_tokens = self._generation_budget(prompt)
         preferred_mode = self._infer_preferred_mode(client)
+        candidate_models = [self.model]
+        if self.fallback_model and self.fallback_model != self.model:
+            candidate_models.append(self.fallback_model)
 
-        try:
-            if preferred_mode == "chat" and hasattr(client, "chat_completion"):
-                response = self._call_chat_completion(client, messages, max_output_tokens)
-                self._generation_api_mode = "chat"
-                return response
-            if preferred_mode == "text" and hasattr(client, "text_generation"):
-                response = self._call_text_completion(client, prompt, max_output_tokens)
-                self._generation_api_mode = "text"
-                return response
-        except ValueError as e:
-            msg = str(e).lower()
-            # Some providers route this model under conversational only.
-            if "supported task" in msg and "conversational" in msg and hasattr(client, "chat_completion"):
-                self._generation_api_mode = "chat"
-                return self._call_chat_completion(client, messages, max_output_tokens)
-            raise
+        last_error: Optional[Exception] = None
+        for candidate in candidate_models:
+            try:
+                if preferred_mode == "chat" and hasattr(client, "chat_completion"):
+                    response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
+                    self._generation_api_mode = "chat"
+                    self.model = candidate
+                    return response
+                if preferred_mode == "text" and hasattr(client, "text_generation"):
+                    response = self._call_text_completion(client, prompt, max_output_tokens, candidate)
+                    self._generation_api_mode = "text"
+                    self.model = candidate
+                    return response
 
-        # Secondary fallback if preferred mode is unavailable in current client version.
-        if preferred_mode != "chat" and hasattr(client, "chat_completion"):
-            self._generation_api_mode = "chat"
-            return self._call_chat_completion(client, messages, max_output_tokens)
-        if preferred_mode != "text" and hasattr(client, "text_generation"):
-            self._generation_api_mode = "text"
-            return self._call_text_completion(client, prompt, max_output_tokens)
+                # Secondary fallback if preferred mode is unavailable in current client version.
+                if preferred_mode != "chat" and hasattr(client, "chat_completion"):
+                    self._generation_api_mode = "chat"
+                    response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
+                    self.model = candidate
+                    return response
+                if preferred_mode != "text" and hasattr(client, "text_generation"):
+                    self._generation_api_mode = "text"
+                    response = self._call_text_completion(client, prompt, max_output_tokens, candidate)
+                    self.model = candidate
+                    return response
+            except ValueError as e:
+                last_error = e
+                msg = str(e).lower()
+                unsupported = "not supported by any provider" in msg or "model_not_supported" in msg
+                # Some providers route this model under conversational only.
+                if "supported task" in msg and "conversational" in msg and hasattr(client, "chat_completion"):
+                    self._generation_api_mode = "chat"
+                    try:
+                        response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
+                        self.model = candidate
+                        return response
+                    except Exception as inner_e:
+                        last_error = inner_e
+                if unsupported:
+                    logger.warning("Model unsupported on current route: %s", candidate)
+                    continue
+                raise
+
+        if last_error:
+            raise last_error
 
         raise AttributeError(
             "InferenceClient generation APIs are unavailable. "
@@ -244,37 +269,13 @@ class CollectiveModel:
 
     def warmup(self) -> None:
         """Prime the provider/model with a tiny request after deployment."""
-        client = self._init_client()
         messages = [
             {"role": "system", "content": "You are Collective AI."},
             {"role": "user", "content": "Reply with one word: ready"},
         ]
-        prompt = self._build_generation_prompt(messages)
-        max_output_tokens = 8
-        preferred_mode = self._infer_preferred_mode(client)
-
-        if preferred_mode == "chat" and hasattr(client, "chat_completion"):
-            self._call_chat_completion(client, messages, max_output_tokens)
-            self._generation_api_mode = "chat"
-            return
-        if preferred_mode == "text" and hasattr(client, "text_generation"):
-            self._call_text_completion(client, prompt, max_output_tokens)
-            self._generation_api_mode = "text"
-            return
-
-        if hasattr(client, "chat_completion"):
-            self._call_chat_completion(client, messages, max_output_tokens)
-            self._generation_api_mode = "chat"
-            return
-        if hasattr(client, "text_generation"):
-            self._call_text_completion(client, prompt, max_output_tokens)
-            self._generation_api_mode = "text"
-            return
-
-        raise AttributeError(
-            "InferenceClient generation APIs are unavailable. "
-            "Upgrade huggingface-hub to a newer version."
-        )
+        response = self._call_text_generation(messages)
+        if not response:
+            raise RuntimeError("Warmup produced empty response")
 
     def generate_response(
         self,

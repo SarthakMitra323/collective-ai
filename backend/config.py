@@ -9,7 +9,8 @@ if not HF_TOKEN:
     import warnings
     warnings.warn("HF_TOKEN not set. AI features will be unavailable.")
 
-HF_MODEL = os.getenv("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
+HF_MODEL = os.getenv("HF_MODEL", "deepseek-ai/DeepSeek-R1")
+HF_FALLBACK_MODEL = os.getenv("HF_FALLBACK_MODEL", "deepseek-ai/DeepSeek-V2-Chat").strip()
 HF_PROVIDER = os.getenv("HF_PROVIDER", "").strip()
 REMOTE_LLM = True
 
