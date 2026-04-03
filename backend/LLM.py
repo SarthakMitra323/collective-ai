@@ -80,16 +80,9 @@ class CollectiveModel:
 
     def _resolved_model(self, model: Optional[str] = None) -> str:
         model = model or self.model
-        provider = HF_PROVIDER.lower() if HF_PROVIDER else ""
-        if provider in {"auto", "featherless-ai"}:
-            provider = ""
-        if provider:
-            return model
-
-        tail = model.rsplit("/", 1)[-1]
-        if ":" in tail or "://" in model:
-            return model
-        return f"{model}:fastest"
+        # InferenceClient expects a plain HF model repo id for this code path.
+        # Router policies like ':fastest' are for the OpenAI-compatible endpoint.
+        return model
 
     @staticmethod
     def _build_prompt(
