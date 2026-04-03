@@ -8,10 +8,24 @@ import logging
 
 try:
     from .LLM import CollectiveModel
-    from .config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE, CHAT_TIMEOUT_SECONDS, RAG_TIMEOUT_SECONDS
+    from .config import (
+        ALLOWED_ORIGIN,
+        ALLOWED_ORIGIN_REGEX,
+        SERVER_PORT,
+        DEBUG_MODE,
+        CHAT_TIMEOUT_SECONDS,
+        RAG_TIMEOUT_SECONDS,
+    )
 except ImportError:
     from LLM import CollectiveModel
-    from config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE, CHAT_TIMEOUT_SECONDS, RAG_TIMEOUT_SECONDS
+    from config import (
+        ALLOWED_ORIGIN,
+        ALLOWED_ORIGIN_REGEX,
+        SERVER_PORT,
+        DEBUG_MODE,
+        CHAT_TIMEOUT_SECONDS,
+        RAG_TIMEOUT_SECONDS,
+    )
 
 # Configure logging
 logging.basicConfig(
@@ -35,11 +49,12 @@ allow_all_origins = "*" in allowed_origins
 if allow_all_origins:
     logger.warning("CORS: Allow All Origins (not recommended for production)")
 else:
-    logger.info(f"CORS: Restricted to {allowed_origins}")
+    logger.info(f"CORS: Restricted to {allowed_origins} (regex={ALLOWED_ORIGIN_REGEX})")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins if not allow_all_origins else ["*"],
+    allow_origin_regex=None if allow_all_origins else ALLOWED_ORIGIN_REGEX,
     allow_credentials=not allow_all_origins,
     allow_methods=["*"],
     allow_headers=["*"],

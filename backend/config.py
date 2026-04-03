@@ -41,6 +41,10 @@ PINECONE_REGION = os.getenv("PINECONE_REGION", "us-east-1")
 
 # ============= Server Configuration =============
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "https://collective-ai.vercel.app").split(",")
+ALLOWED_ORIGIN_REGEX = os.getenv(
+    "ALLOWED_ORIGIN_REGEX",
+    r"^https://([a-z0-9-]+\.)*vercel\.app$",
+)
 SERVER_PORT = int(os.getenv("PORT", 3000))
 DEBUG_MODE = os.getenv("DEBUG", "false").lower() == "true"
 
