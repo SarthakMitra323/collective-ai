@@ -433,13 +433,16 @@ ui.setHandleSend(async function(text){
       }
     }
 
+    const CHAT_TIMEOUT_MS=85000;
     let res;
     try{
-      res=await fetchChatOnce(50000);
+      res=await fetchChatOnce(CHAT_TIMEOUT_MS);
     }catch(firstErr){
-      // Retry once for transient gateway/network failures.
-      await new Promise(function(r){ setTimeout(r, 1200); });
-      res=await fetchChatOnce(50000);
+      const name=(firstErr&&firstErr.name)||'';
+      // Retry once only for transient network-level failures, not on explicit timeout.
+      if(name==='AbortError') throw firstErr;
+      await new Promise(function(r){ setTimeout(r, 900); });
+      res=await fetchChatOnce(CHAT_TIMEOUT_MS);
     }
 
     ui.removeLoader(lid);
