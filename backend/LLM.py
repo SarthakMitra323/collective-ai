@@ -4,9 +4,9 @@ import logging
 from typing import Optional, List, Dict
 
 try:
-    from .config import HF_TOKEN, HF_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS
+    from .config import HF_TOKEN, HF_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
 except ImportError:
-    from config import HF_TOKEN, HF_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS
+    from config import HF_TOKEN, HF_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
 
 if SUPPRESS_HF_LOGS:
     logging.getLogger("huggingface_hub").setLevel(logging.CRITICAL)
@@ -40,6 +40,7 @@ class CollectiveModel:
         self.client = None
         self.model = HF_MODEL
         self._init_error = None
+        self._generation_api_mode: Optional[str] = None
         if not HF_TOKEN:
             self._init_error = "HF_TOKEN not configured"
             logger.error(self._init_error)
@@ -58,17 +59,36 @@ class CollectiveModel:
             raise RuntimeError(self._init_error)
 
         try:
-            self.client = InferenceClient(
-                api_key=HF_TOKEN,
-                timeout=REQUEST_TIMEOUT,
-                provider=HF_PROVIDER,
-            )
-            logger.info(f"LLM initialized: {self.model}")
+            client_kwargs: Dict[str, object] = {
+                "api_key": HF_TOKEN,
+                "timeout": REQUEST_TIMEOUT,
+            }
+            provider = HF_PROVIDER.lower() if HF_PROVIDER else ""
+            if provider in {"auto", "featherless-ai"}:
+                provider = ""
+            if provider:
+                client_kwargs["provider"] = HF_PROVIDER
+
+            self.client = InferenceClient(**client_kwargs)
+            logger.info("LLM initialized: %s", self._resolved_model())
             return self.client
         except Exception as e:
             self._init_error = str(e)
             logger.exception("Failed to initialize HuggingFace client")
             raise RuntimeError(f"Failed to initialize HuggingFace client: {e}")
+
+    def _resolved_model(self) -> str:
+        model = self.model
+        provider = HF_PROVIDER.lower() if HF_PROVIDER else ""
+        if provider in {"auto", "featherless-ai"}:
+            provider = ""
+        if provider:
+            return model
+
+        tail = model.rsplit("/", 1)[-1]
+        if ":" in tail or "://" in model:
+            return model
+        return f"{model}:fastest"
 
     @staticmethod
     def _build_prompt(
@@ -144,44 +164,78 @@ class CollectiveModel:
         prompt_tokens = self._estimate_input_tokens(prompt)
         reserved_for_prompt = 48
         remaining = 4096 - prompt_tokens - reserved_for_prompt
-        return max(64, min(256, remaining))
+        return max(64, min(MAX_OUTPUT_TOKENS, remaining))
+
+    def _infer_preferred_mode(self, client) -> str:
+        if self._generation_api_mode in {"text", "chat"}:
+            return self._generation_api_mode
+        model_lower = self.model.lower()
+        has_chat = hasattr(client, "chat_completion")
+        has_text = hasattr(client, "text_generation")
+        if has_chat and ("instruct" in model_lower or "chat" in model_lower):
+            return "chat"
+        if has_text:
+            return "text"
+        if has_chat:
+            return "chat"
+        return "text"
+
+    def _call_chat_completion(self, client, messages: List[Dict[str, str]], max_output_tokens: int) -> str:
+        chat_kwargs: Dict[str, object] = {
+            "model": self._resolved_model(),
+            "messages": messages,
+            "temperature": 0.3,
+            "stop": ["\nUser:", "\n### User:"],
+            "max_tokens": max_output_tokens,
+        }
+        out = client.chat_completion(**chat_kwargs)
+        return (out.choices[0].message.content or "").strip()
+
+    def _call_text_completion(self, client, prompt: str, max_output_tokens: int) -> str:
+        generation_kwargs: Dict[str, object] = {
+            "model": self._resolved_model(),
+            "prompt": prompt,
+            "temperature": 0.3,
+            "repetition_penalty": 1.1,
+            "return_full_text": False,
+            "stop": ["\nUser:", "\n### User:"],
+            "max_new_tokens": max_output_tokens,
+            "do_sample": False,
+        }
+        out = client.text_generation(**generation_kwargs)
+        return str(out).strip()
 
     def _call_text_generation(self, messages: List[Dict[str, str]]) -> str:
         """Call HF inference with automatic fallback between text and chat tasks."""
         client = self._init_client()
         prompt = self._build_generation_prompt(messages)
         max_output_tokens = self._generation_budget(prompt)
+        preferred_mode = self._infer_preferred_mode(client)
 
         try:
-            if hasattr(client, "text_generation"):
-                generation_kwargs: Dict[str, object] = {
-                    "model": self.model,
-                    "prompt": prompt,
-                    "temperature": 0.3,
-                    "repetition_penalty": 1.1,
-                    "return_full_text": False,
-                    "stop": ["\nUser:", "\n### User:"],
-                    "max_new_tokens": max_output_tokens,
-                    "do_sample": False,
-                }
-
-                out = client.text_generation(**generation_kwargs)
-                return str(out).strip()
+            if preferred_mode == "chat" and hasattr(client, "chat_completion"):
+                response = self._call_chat_completion(client, messages, max_output_tokens)
+                self._generation_api_mode = "chat"
+                return response
+            if preferred_mode == "text" and hasattr(client, "text_generation"):
+                response = self._call_text_completion(client, prompt, max_output_tokens)
+                self._generation_api_mode = "text"
+                return response
         except ValueError as e:
             msg = str(e).lower()
             # Some providers route this model under conversational only.
             if "supported task" in msg and "conversational" in msg and hasattr(client, "chat_completion"):
-                chat_kwargs: Dict[str, object] = {
-                    "model": self.model,
-                    "messages": messages,
-                    "temperature": 0.3,
-                    "stop": ["\nUser:", "\n### User:"],
-                    "max_tokens": max_output_tokens,
-                }
-
-                out = client.chat_completion(**chat_kwargs)
-                return (out.choices[0].message.content or "").strip()
+                self._generation_api_mode = "chat"
+                return self._call_chat_completion(client, messages, max_output_tokens)
             raise
+
+        # Secondary fallback if preferred mode is unavailable in current client version.
+        if preferred_mode != "chat" and hasattr(client, "chat_completion"):
+            self._generation_api_mode = "chat"
+            return self._call_chat_completion(client, messages, max_output_tokens)
+        if preferred_mode != "text" and hasattr(client, "text_generation"):
+            self._generation_api_mode = "text"
+            return self._call_text_completion(client, prompt, max_output_tokens)
 
         raise AttributeError(
             "InferenceClient generation APIs are unavailable. "
@@ -257,7 +311,7 @@ class CollectiveModel:
             logger.warning(f"ValueError: {e}")
             lower = str(e).lower()
             if "not supported by any provider you have enabled" in lower:
-                return "❌ Provider routing error. Enable Featherless AI in Hugging Face Inference Providers, or set HF_PROVIDER to a provider that supports this model."
+                return "❌ Provider routing error. Set HF_PROVIDER to a supported provider, or leave it empty to use Hugging Face fastest routing."
             return "❌ Input error. Try again."
         except AttributeError as e:
             if show_thinking:

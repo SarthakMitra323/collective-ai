@@ -10,7 +10,7 @@ if not HF_TOKEN:
     warnings.warn("HF_TOKEN not set. AI features will be unavailable.")
 
 HF_MODEL = os.getenv("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
-HF_PROVIDER = os.getenv("HF_PROVIDER", "featherless-ai")
+HF_PROVIDER = os.getenv("HF_PROVIDER", "").strip()
 REMOTE_LLM = True
 
 max_response_length_env = os.getenv("MAX_RESPONSE_LENGTH", "").strip()
@@ -18,6 +18,10 @@ MAX_RESPONSE_LENGTH = int(max_response_length_env) if max_response_length_env el
 
 request_timeout_env = os.getenv("REQUEST_TIMEOUT", "").strip()
 REQUEST_TIMEOUT = float(request_timeout_env) if request_timeout_env else None
+chat_timeout_env = os.getenv("CHAT_TIMEOUT_SECONDS", "").strip()
+CHAT_TIMEOUT_SECONDS = float(chat_timeout_env) if chat_timeout_env else 80.0
+max_output_tokens_env = os.getenv("MAX_OUTPUT_TOKENS", "").strip()
+MAX_OUTPUT_TOKENS = int(max_output_tokens_env) if max_output_tokens_env else 224
 SUPPRESS_HF_LOGS = True  
 
 # ============= RAG Configuration =============

@@ -8,10 +8,10 @@ import logging
 
 try:
     from .LLM import CollectiveModel
-    from .config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE
+    from .config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE, CHAT_TIMEOUT_SECONDS
 except ImportError:
     from LLM import CollectiveModel
-    from config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE
+    from config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE, CHAT_TIMEOUT_SECONDS
 
 # Configure logging
 logging.basicConfig(
@@ -221,6 +221,7 @@ async def chat_endpoint(request: ChatRequest):
     logger.debug(f"Chat request from session: {request.sessionId}")
     
     try:
+        start_time = asyncio.get_running_loop().time()
         engine = get_ai_engine()
         session_key = (request.sessionId or request.userId or "default").strip()
         if session_key not in _session_histories:
@@ -230,6 +231,7 @@ async def chat_endpoint(request: ChatRequest):
 
         # 1. Retrieve relevant context from Knowledge Base
         context_docs = get_knowledge_base().search(request.message, n_results=2)
+        after_rag = asyncio.get_running_loop().time()
         if context_docs:
             logger.debug(f"Found {len(context_docs)} context docs")
         else:
@@ -244,9 +246,16 @@ async def chat_endpoint(request: ChatRequest):
                 chat_history,
                 False,
             ),
-            timeout=45,
+            timeout=CHAT_TIMEOUT_SECONDS,
         )
+        after_llm = asyncio.get_running_loop().time()
         logger.info(f"Response generated: {len(response_text)} chars")
+        logger.info(
+            "Timing | rag=%.2fs llm=%.2fs total=%.2fs",
+            after_rag - start_time,
+            after_llm - after_rag,
+            after_llm - start_time,
+        )
 
         chat_history.append({"role": "user", "content": request.message})
         chat_history.append({"role": "assistant", "content": response_text})
