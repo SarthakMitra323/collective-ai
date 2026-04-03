@@ -18,6 +18,10 @@ MAX_RESPONSE_LENGTH = int(max_response_length_env) if max_response_length_env el
 
 request_timeout_env = os.getenv("REQUEST_TIMEOUT", "").strip()
 REQUEST_TIMEOUT = float(request_timeout_env) if request_timeout_env else None
+warmup_llm_on_startup_env = os.getenv("WARMUP_LLM_ON_STARTUP", "").strip().lower()
+WARMUP_LLM_ON_STARTUP = warmup_llm_on_startup_env != "false"
+warmup_llm_timeout_env = os.getenv("WARMUP_LLM_TIMEOUT_SECONDS", "").strip()
+WARMUP_LLM_TIMEOUT_SECONDS = float(warmup_llm_timeout_env) if warmup_llm_timeout_env else 45.0
 chat_timeout_env = os.getenv("CHAT_TIMEOUT_SECONDS", "").strip()
 CHAT_TIMEOUT_SECONDS = float(chat_timeout_env) if chat_timeout_env else 80.0
 rag_timeout_env = os.getenv("RAG_TIMEOUT_SECONDS", "").strip()

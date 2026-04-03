@@ -242,6 +242,40 @@ class CollectiveModel:
             "Upgrade huggingface-hub to a newer version."
         )
 
+    def warmup(self) -> None:
+        """Prime the provider/model with a tiny request after deployment."""
+        client = self._init_client()
+        messages = [
+            {"role": "system", "content": "You are Collective AI."},
+            {"role": "user", "content": "Reply with one word: ready"},
+        ]
+        prompt = self._build_generation_prompt(messages)
+        max_output_tokens = 8
+        preferred_mode = self._infer_preferred_mode(client)
+
+        if preferred_mode == "chat" and hasattr(client, "chat_completion"):
+            self._call_chat_completion(client, messages, max_output_tokens)
+            self._generation_api_mode = "chat"
+            return
+        if preferred_mode == "text" and hasattr(client, "text_generation"):
+            self._call_text_completion(client, prompt, max_output_tokens)
+            self._generation_api_mode = "text"
+            return
+
+        if hasattr(client, "chat_completion"):
+            self._call_chat_completion(client, messages, max_output_tokens)
+            self._generation_api_mode = "chat"
+            return
+        if hasattr(client, "text_generation"):
+            self._call_text_completion(client, prompt, max_output_tokens)
+            self._generation_api_mode = "text"
+            return
+
+        raise AttributeError(
+            "InferenceClient generation APIs are unavailable. "
+            "Upgrade huggingface-hub to a newer version."
+        )
+
     def generate_response(
         self,
         user_input: str,

@@ -1,5 +1,6 @@
 import os
 import asyncio
+import threading
 from fastapi import FastAPI, HTTPException #type:ignore
 from fastapi.middleware.cors import CORSMiddleware  #type:ignore
 from pydantic import BaseModel
@@ -13,6 +14,8 @@ try:
         ALLOWED_ORIGIN_REGEX,
         SERVER_PORT,
         DEBUG_MODE,
+        WARMUP_LLM_ON_STARTUP,
+        WARMUP_LLM_TIMEOUT_SECONDS,
         CHAT_TIMEOUT_SECONDS,
         RAG_TIMEOUT_SECONDS,
     )
@@ -23,6 +26,8 @@ except ImportError:
         ALLOWED_ORIGIN_REGEX,
         SERVER_PORT,
         DEBUG_MODE,
+        WARMUP_LLM_ON_STARTUP,
+        WARMUP_LLM_TIMEOUT_SECONDS,
         CHAT_TIMEOUT_SECONDS,
         RAG_TIMEOUT_SECONDS,
     )
@@ -65,6 +70,27 @@ logger.info("Initializing Collective AI Backend...")
 ai_engine = None
 _knowledge_base = None
 _session_histories: dict[str, list[dict[str, str]]] = {}
+_llm_warmup_started = False
+
+
+def _warmup_llm_background():
+    try:
+        logger.info("Starting HF warmup request for deployment...")
+        engine = get_ai_engine()
+        engine.warmup()
+        logger.info("HF warmup completed")
+    except Exception as e:
+        logger.warning(f"HF warmup failed: {e}")
+
+
+@app.on_event("startup")
+async def warmup_on_startup():
+    global _llm_warmup_started
+    if not WARMUP_LLM_ON_STARTUP or _llm_warmup_started:
+        return
+    _llm_warmup_started = True
+    threading.Thread(target=_warmup_llm_background, daemon=True).start()
+    logger.info("HF warmup scheduled (timeout=%ss)", WARMUP_LLM_TIMEOUT_SECONDS)
 
 def get_ai_engine():
     global ai_engine
