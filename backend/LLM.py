@@ -38,6 +38,7 @@ class CollectiveModel:
 
     def __init__(self):
         self.client = None
+        self.primary_model = HF_MODEL
         self.model = HF_MODEL
         self.fallback_model = HF_FALLBACK_MODEL if HF_FALLBACK_MODEL else None
         self._init_error = None
@@ -71,7 +72,7 @@ class CollectiveModel:
                 client_kwargs["provider"] = HF_PROVIDER
 
             self.client = InferenceClient(**client_kwargs)
-            logger.info("LLM initialized: %s", self._resolved_model())
+            logger.info("LLM initialized: %s", self._resolved_model(self.primary_model))
             return self.client
         except Exception as e:
             self._init_error = str(e)
@@ -160,14 +161,14 @@ class CollectiveModel:
         remaining = 4096 - prompt_tokens - reserved_for_prompt
         return max(64, min(MAX_OUTPUT_TOKENS, remaining))
 
-    def _infer_preferred_mode(self, client) -> str:
-        if self._generation_api_mode in {"text", "chat"}:
-            return self._generation_api_mode
-        model_lower = self.model.lower()
+    def _infer_preferred_mode(self, client, model_name: Optional[str] = None) -> str:
+        model_lower = (model_name or self.model).lower()
         has_chat = hasattr(client, "chat_completion")
         has_text = hasattr(client, "text_generation")
-        if has_chat and ("instruct" in model_lower or "chat" in model_lower):
+        if has_chat and ("deepseek" in model_lower or "instruct" in model_lower or "chat" in model_lower):
             return "chat"
+        if self._generation_api_mode in {"text", "chat"}:
+            return self._generation_api_mode
         if has_text:
             return "text"
         if has_chat:
@@ -204,35 +205,31 @@ class CollectiveModel:
         client = self._init_client()
         prompt = self._build_generation_prompt(messages)
         max_output_tokens = self._generation_budget(prompt)
-        preferred_mode = self._infer_preferred_mode(client)
-        candidate_models = [self.model]
-        if self.fallback_model and self.fallback_model != self.model:
+        candidate_models = [self.primary_model]
+        if self.fallback_model and self.fallback_model != self.primary_model:
             candidate_models.append(self.fallback_model)
 
         last_error: Optional[Exception] = None
         for candidate in candidate_models:
             try:
+                preferred_mode = self._infer_preferred_mode(client, candidate)
                 if preferred_mode == "chat" and hasattr(client, "chat_completion"):
                     response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
                     self._generation_api_mode = "chat"
-                    self.model = candidate
                     return response
                 if preferred_mode == "text" and hasattr(client, "text_generation"):
                     response = self._call_text_completion(client, prompt, max_output_tokens, candidate)
                     self._generation_api_mode = "text"
-                    self.model = candidate
                     return response
 
                 # Secondary fallback if preferred mode is unavailable in current client version.
-                if preferred_mode != "chat" and hasattr(client, "chat_completion"):
+                if preferred_mode != "chat" and hasattr(client, "chat_completion") and "deepseek" not in candidate.lower():
                     self._generation_api_mode = "chat"
                     response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
-                    self.model = candidate
                     return response
-                if preferred_mode != "text" and hasattr(client, "text_generation"):
+                if preferred_mode != "text" and hasattr(client, "text_generation") and "deepseek" not in candidate.lower():
                     self._generation_api_mode = "text"
                     response = self._call_text_completion(client, prompt, max_output_tokens, candidate)
-                    self.model = candidate
                     return response
             except ValueError as e:
                 last_error = e
@@ -243,7 +240,6 @@ class CollectiveModel:
                     self._generation_api_mode = "chat"
                     try:
                         response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
-                        self.model = candidate
                         return response
                     except Exception as inner_e:
                         last_error = inner_e
@@ -269,6 +265,23 @@ class CollectiveModel:
         response = self._call_text_generation(messages)
         if not response:
             raise RuntimeError("Warmup produced empty response")
+
+    @staticmethod
+    def _finalize_response_text(response_text: str) -> str:
+        response_text = response_text.replace("<think>", "").replace("</think>", "").strip()
+
+        if response_text.startswith("Assistant:"):
+            response_text = response_text[len("Assistant:"):].strip()
+        if response_text.startswith("User question:"):
+            response_text = response_text[len("User question:"):].strip()
+        if response_text.startswith("Question:"):
+            response_text = response_text[len("Question:"):].strip()
+        for marker in ["\nUser:", "\nAssistant:", "\n[INST]", "</s>"]:
+            if marker in response_text:
+                response_text = response_text.split(marker, 1)[0].strip()
+
+        cleaned = CollectiveModel._remove_repeated_paragraphs(response_text)
+        return cleaned or response_text.strip()
 
     def generate_response(
         self,
@@ -311,21 +324,7 @@ class CollectiveModel:
             if show_thinking:
                 print("\r" + " " * 30 + "\r", end="", flush=True)
             
-            # Clean up any <think> tags from output if present
-            response_text = response_text.replace("<think>", "").replace("</think>", "").strip()
-
-            # Remove role-play spillover if provider ignores stop sequences.
-            if response_text.startswith("Assistant:"):
-                response_text = response_text[len("Assistant:"):].strip()
-            if response_text.startswith("User question:"):
-                response_text = response_text[len("User question:"):].strip()
-            if response_text.startswith("Question:"):
-                response_text = response_text[len("Question:"):].strip()
-            for marker in ["\nUser:", "\nAssistant:", "\n[INST]", "</s>"]:
-                if marker in response_text:
-                    response_text = response_text.split(marker, 1)[0].strip()
-
-            response_text = self._remove_repeated_paragraphs(response_text)
+            response_text = self._finalize_response_text(response_text)
             
             # Validate response
             if not response_text or not response_text.strip():
