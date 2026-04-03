@@ -417,19 +417,35 @@ ui.setHandleSend(async function(text){
   try{await addDoc(mCol(ui.curSess.id),{role:'user',text,createdAt:serverTimestamp()});}catch{}
   const lid=ui.addLoader();
   try{
-    async function fetchChatOnce(timeoutMs){
+    function createTimeoutSignal(timeoutMs){
+      if(typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'){
+        return {
+          signal: AbortSignal.timeout(timeoutMs),
+          cancel: function(){}
+        };
+      }
       const controller=new AbortController();
-      const timer=setTimeout(function(){ controller.abort(); }, timeoutMs);
+      const timer=setTimeout(function(){
+        controller.abort(new DOMException('Request timed out','TimeoutError'));
+      }, timeoutMs);
+      return {
+        signal: controller.signal,
+        cancel: function(){ clearTimeout(timer); }
+      };
+    }
+
+    async function fetchChatOnce(timeoutMs){
+      const timeout=createTimeoutSignal(timeoutMs);
       try{
         return await fetch(BACKEND+'/api/chat',{
           method:'POST',
           mode:'cors',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({message:text,sessionId:ui.curSess.id,userId:me.uid}),
-          signal:controller.signal
+          signal:timeout.signal
         });
       } finally {
-        clearTimeout(timer);
+        timeout.cancel();
       }
     }
 
@@ -453,7 +469,7 @@ ui.setHandleSend(async function(text){
   }catch(err){
     ui.removeLoader(lid);
     var msg='\u26a0\ufe0f Network request failed. Please try again.';
-    if(err&&err.name==='AbortError') msg='\u23f1\ufe0f Request timed out. Please retry.';
+    if(err&&(err.name==='AbortError'||err.name==='TimeoutError')) msg='\u23f1\ufe0f Request timed out. Please retry.';
     else if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0){
       var code=err.message.replace('HTTP ','');
       if(code==='504') msg='\u23f1\ufe0f Backend timed out while generating. Please retry.';
@@ -463,6 +479,7 @@ ui.setHandleSend(async function(text){
     console.error('Chat fetch failed',{
       errorName: err&&err.name,
       errorMessage: err&&err.message,
+      timeoutMs: CHAT_TIMEOUT_MS,
       backend: BACKEND,
       online: navigator.onLine
     });
