@@ -8,10 +8,10 @@ import logging
 
 try:
     from .LLM import CollectiveModel
-    from .config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE, CHAT_TIMEOUT_SECONDS
+    from .config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE, CHAT_TIMEOUT_SECONDS, RAG_TIMEOUT_SECONDS
 except ImportError:
     from LLM import CollectiveModel
-    from config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE, CHAT_TIMEOUT_SECONDS
+    from config import ALLOWED_ORIGIN, SERVER_PORT, DEBUG_MODE, CHAT_TIMEOUT_SECONDS, RAG_TIMEOUT_SECONDS
 
 # Configure logging
 logging.basicConfig(
@@ -229,8 +229,11 @@ async def chat_endpoint(request: ChatRequest):
 
         chat_history = _session_histories[session_key]
 
-        # 1. Retrieve relevant context from Knowledge Base
-        context_docs = get_knowledge_base().search(request.message, n_results=2)
+        # 1. Retrieve relevant context from Knowledge Base with an explicit timeout.
+        context_docs = await asyncio.wait_for(
+            asyncio.to_thread(get_knowledge_base().search, request.message, 2),
+            timeout=RAG_TIMEOUT_SECONDS,
+        )
         after_rag = asyncio.get_running_loop().time()
         if context_docs:
             logger.debug(f"Found {len(context_docs)} context docs")
@@ -267,8 +270,14 @@ async def chat_endpoint(request: ChatRequest):
             "context_used": len(context_docs),
             "status": "success"
         }
-    except TimeoutError:
-        logger.warning("Chat generation timed out after 45s")
+    except asyncio.TimeoutError:
+        elapsed = asyncio.get_running_loop().time() - start_time
+        logger.warning(
+            "Chat timed out after %.2fs (rag_timeout=%ss, chat_timeout=%ss)",
+            elapsed,
+            RAG_TIMEOUT_SECONDS,
+            CHAT_TIMEOUT_SECONDS,
+        )
         raise HTTPException(status_code=504, detail="AI response timed out")
     except Exception as e:
         logger.exception(f"Chat error: {e}")
