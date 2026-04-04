@@ -416,49 +416,23 @@ ui.setHandleSend(async function(text){
   ui.addMsg('user',text,false);
   try{await addDoc(mCol(ui.curSess.id),{role:'user',text,createdAt:serverTimestamp()});}catch{}
   const lid=ui.addLoader();
-  const CHAT_TIMEOUT_MS=85000;
   try{
-    function createTimeoutSignal(timeoutMs){
-      if(typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'){
-        return {
-          signal: AbortSignal.timeout(timeoutMs),
-          cancel: function(){}
-        };
-      }
-      const controller=new AbortController();
-      const timer=setTimeout(function(){
-        controller.abort(new DOMException('Request timed out','TimeoutError'));
-      }, timeoutMs);
-      return {
-        signal: controller.signal,
-        cancel: function(){ clearTimeout(timer); }
-      };
-    }
-
-    async function fetchChatOnce(timeoutMs){
-      const timeout=createTimeoutSignal(timeoutMs);
-      try{
-        return await fetch(BACKEND+'/api/chat',{
-          method:'POST',
-          mode:'cors',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({message:text,sessionId:ui.curSess.id,userId:me.uid}),
-          signal:timeout.signal
-        });
-      } finally {
-        timeout.cancel();
-      }
+    async function fetchChatOnce(){
+      return await fetch(BACKEND+'/api/chat',{
+        method:'POST',
+        mode:'cors',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({message:text,sessionId:ui.curSess.id,userId:me.uid})
+      });
     }
 
     let res;
     try{
-      res=await fetchChatOnce(CHAT_TIMEOUT_MS);
+      res=await fetchChatOnce();
     }catch(firstErr){
-      const name=(firstErr&&firstErr.name)||'';
-      // Retry once only for transient network-level failures, not on explicit timeout.
-      if(name==='AbortError') throw firstErr;
+      // Retry once only for transient network-level failures.
       await new Promise(function(r){ setTimeout(r, 900); });
-      res=await fetchChatOnce(CHAT_TIMEOUT_MS);
+      res=await fetchChatOnce();
     }
 
     ui.removeLoader(lid);
@@ -469,17 +443,14 @@ ui.setHandleSend(async function(text){
   }catch(err){
     ui.removeLoader(lid);
     var msg='\u26a0\ufe0f Network request failed. Please try again.';
-    if(err&&(err.name==='AbortError'||err.name==='TimeoutError')) msg='\u23f1\ufe0f Request timed out. Please retry.';
-    else if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0){
+    if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0){
       var code=err.message.replace('HTTP ','');
-      if(code==='504') msg='\u23f1\ufe0f Backend timed out while generating. Please retry.';
-      else msg='\u26a0\ufe0f Server error ('+code+'). Please retry.';
+      msg='\u26a0\ufe0f Server error ('+code+'). Please retry.';
     }
     ui.addMsg('ai',msg,false);
     console.error('Chat fetch failed',{
       errorName: err&&err.name,
       errorMessage: err&&err.message,
-      timeoutMs: CHAT_TIMEOUT_MS,
       backend: BACKEND,
       online: navigator.onLine
     });
