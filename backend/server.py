@@ -102,7 +102,7 @@ async def warmup_on_startup():
     app.state.startup_task = asyncio.create_task(asyncio.to_thread(_startup_initialize_blocking))
 
 
-@app.get("/api/ready")
+@app.api_route("/api/ready", methods=["GET", "HEAD"])
 async def ready_check():
     if _startup_ready.is_set():
         detail = {"status": "ready"}
@@ -153,7 +153,7 @@ class SearchRequest(BaseModel):
 
 # --- Endpoints ---
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def home():
     return {
         "status": "Collective AI Server Running",
@@ -163,11 +163,18 @@ def home():
             "contribute": "POST /api/contribute",
             "search": "POST /api/search",
             "memory_stats": "GET /api/stats",
-            "health": "GET /api/health"
-        }
+            "health": "GET /api/health",
+            "healthz": "GET /healthz",
+        },
     }
 
-@app.get("/api/health")
+
+@app.api_route("/healthz", methods=["GET", "HEAD"])
+async def healthz_check():
+    return await ready_check()
+
+
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 async def health_check():
     """Detailed health check for debugging startup issues."""
     import sys
