@@ -1,7 +1,7 @@
 {
   "routes": [
+    { "src": "/api/(.*)", "dest": "https://collective-ai-backend.onrender.com/api/$1" },
     { "handle": "filesystem" },
-    { "src": "/api/:match*", "dest": "https://collective-ai-backend.onrender.com/api/:match*" },
     { "src": "/(.*)", "status": 404, "dest": "/frontend/page_not_found.html" }
   ]
 }
