@@ -2,6 +2,8 @@ from huggingface_hub import InferenceClient # type:ignore
 import sys
 import logging
 from typing import Optional, List, Dict
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+import re
 
 try:
     from .config import HF_TOKEN, HF_MODEL, HF_FALLBACK_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
@@ -21,6 +23,56 @@ logger = logging.getLogger(__name__)
 
 
 class CollectiveModel:
+
+    @staticmethod
+    def _inference_timeout_seconds() -> Optional[float]:
+        try:
+            return float(REQUEST_TIMEOUT) if REQUEST_TIMEOUT else None
+        except Exception:
+            return None
+
+    def _run_with_timeout(self, fn, *args):
+        timeout_s = self._inference_timeout_seconds()
+        if timeout_s is None:
+            return fn(*args)
+        ex = ThreadPoolExecutor(max_workers=1)
+        future = ex.submit(fn, *args)
+        try:
+            return future.result(timeout=timeout_s)
+        except FuturesTimeoutError as e:
+            future.cancel()
+            raise TimeoutError(f"Inference timed out after {timeout_s:.0f}s") from e
+        finally:
+            ex.shutdown(wait=False, cancel_futures=True)
+
+    @staticmethod
+    def _extract_message_text(message_obj) -> str:
+        """Best-effort extraction for provider-specific chat payload shapes."""
+        if message_obj is None:
+            return ""
+
+        content = getattr(message_obj, "content", None)
+        if isinstance(content, str) and content.strip():
+            return content.strip()
+        if isinstance(content, list):
+            parts: List[str] = []
+            for item in content:
+                if isinstance(item, str) and item.strip():
+                    parts.append(item.strip())
+                elif isinstance(item, dict):
+                    txt = str(item.get("text", "")).strip()
+                    if txt:
+                        parts.append(txt)
+            if parts:
+                return "\n".join(parts)
+
+        # Never surface reasoning fields to users; use final answer content only.
+        for attr in ("text",):
+            val = getattr(message_obj, attr, None)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+
+        return ""
 
     @staticmethod
     def _remove_repeated_paragraphs(text: str) -> str:
@@ -154,8 +206,10 @@ class CollectiveModel:
         """Roughly estimate tokens so we can keep requests inside the model window."""
         return max(1, len(text) // 4)
 
-    def _generation_budget(self, prompt: str) -> int:
-        """Pick a safe output budget below the model context limit."""
+    def _generation_budget(self, prompt: str) -> Optional[int]:
+        """Pick output budget; unlimited when MAX_OUTPUT_TOKENS is not configured."""
+        if MAX_OUTPUT_TOKENS is None:
+            return None
         prompt_tokens = self._estimate_input_tokens(prompt)
         reserved_for_prompt = 48
         remaining = 4096 - prompt_tokens - reserved_for_prompt
@@ -175,18 +229,34 @@ class CollectiveModel:
             return "chat"
         return "text"
 
-    def _call_chat_completion(self, client, messages: List[Dict[str, str]], max_output_tokens: int, model: Optional[str] = None) -> str:
+    def _call_chat_completion(
+        self,
+        client,
+        messages: List[Dict[str, str]],
+        max_output_tokens: Optional[int],
+        model: Optional[str] = None,
+        include_stop: bool = True,
+    ) -> str:
         chat_kwargs: Dict[str, object] = {
             "model": self._resolved_model(model),
             "messages": messages,
             "temperature": 0.3,
-            "stop": ["\nUser:", "\n### User:"],
-            "max_tokens": max_output_tokens,
         }
+        if max_output_tokens is not None:
+            chat_kwargs["max_tokens"] = max_output_tokens
+        if include_stop:
+            chat_kwargs["stop"] = ["\nUser:", "\n### User:"]
         out = client.chat_completion(**chat_kwargs)
-        return (out.choices[0].message.content or "").strip()
+        choices = getattr(out, "choices", None) or []
+        if not choices:
+            return ""
+        message_obj = getattr(choices[0], "message", None)
+        extracted = self._extract_message_text(message_obj)
+        if extracted:
+            return extracted
+        return ""
 
-    def _call_text_completion(self, client, prompt: str, max_output_tokens: int, model: Optional[str] = None) -> str:
+    def _call_text_completion(self, client, prompt: str, max_output_tokens: Optional[int], model: Optional[str] = None) -> str:
         generation_kwargs: Dict[str, object] = {
             "model": self._resolved_model(model),
             "prompt": prompt,
@@ -194,9 +264,10 @@ class CollectiveModel:
             "repetition_penalty": 1.1,
             "return_full_text": False,
             "stop": ["\nUser:", "\n### User:"],
-            "max_new_tokens": max_output_tokens,
             "do_sample": False,
         }
+        if max_output_tokens is not None:
+            generation_kwargs["max_new_tokens"] = max_output_tokens
         out = client.text_generation(**generation_kwargs)
         return str(out).strip()
 
@@ -214,22 +285,66 @@ class CollectiveModel:
             try:
                 preferred_mode = self._infer_preferred_mode(client, candidate)
                 if preferred_mode == "chat" and hasattr(client, "chat_completion"):
-                    response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
+                    response = self._run_with_timeout(
+                        self._call_chat_completion,
+                        client,
+                        messages,
+                        max_output_tokens,
+                        candidate,
+                    )
                     self._generation_api_mode = "chat"
+                    if not response:
+                        # Retry once without stop markers; some providers emit an empty first chunk
+                        # if the sampled continuation starts with a stop sequence.
+                        response = self._run_with_timeout(
+                            self._call_chat_completion,
+                            client,
+                            messages,
+                            max_output_tokens,
+                            candidate,
+                            False,
+                        )
+                    if not response and hasattr(client, "text_generation"):
+                        response = self._run_with_timeout(
+                            self._call_text_completion,
+                            client,
+                            prompt,
+                            max_output_tokens,
+                            candidate,
+                        )
+                        self._generation_api_mode = "text"
                     return response
                 if preferred_mode == "text" and hasattr(client, "text_generation"):
-                    response = self._call_text_completion(client, prompt, max_output_tokens, candidate)
+                    response = self._run_with_timeout(
+                        self._call_text_completion,
+                        client,
+                        prompt,
+                        max_output_tokens,
+                        candidate,
+                    )
                     self._generation_api_mode = "text"
                     return response
 
                 # Secondary fallback if preferred mode is unavailable in current client version.
                 if preferred_mode != "chat" and hasattr(client, "chat_completion") and "deepseek" not in candidate.lower():
                     self._generation_api_mode = "chat"
-                    response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
+                    response = self._run_with_timeout(
+                        self._call_chat_completion,
+                        client,
+                        messages,
+                        max_output_tokens,
+                        candidate,
+                    )
                     return response
                 if preferred_mode != "text" and hasattr(client, "text_generation") and "deepseek" not in candidate.lower():
                     self._generation_api_mode = "text"
-                    response = self._call_text_completion(client, prompt, max_output_tokens, candidate)
+                    response = self._run_with_timeout(
+                        self._call_text_completion,
+                        client,
+                        prompt,
+                        max_output_tokens,
+                        candidate,
+                    )
                     return response
             except ValueError as e:
                 last_error = e
@@ -239,7 +354,13 @@ class CollectiveModel:
                 if "supported task" in msg and "conversational" in msg and hasattr(client, "chat_completion"):
                     self._generation_api_mode = "chat"
                     try:
-                        response = self._call_chat_completion(client, messages, max_output_tokens, candidate)
+                        response = self._run_with_timeout(
+                            self._call_chat_completion,
+                            client,
+                            messages,
+                            max_output_tokens,
+                            candidate,
+                        )
                         return response
                     except Exception as inner_e:
                         last_error = inner_e
@@ -268,7 +389,13 @@ class CollectiveModel:
 
     @staticmethod
     def _finalize_response_text(response_text: str) -> str:
-        response_text = response_text.replace("<think>", "").replace("</think>", "").strip()
+        original = (response_text or "").strip()
+        response_text = original.replace("<think>", "").replace("</think>", "").strip()
+
+        # If provider returns Thought/Answer style text, keep only the final answer.
+        answer_match = re.search(r"(?:^|\n)\s*(?:final\s+answer|answer)\s*:\s*(.+)$", response_text, re.IGNORECASE | re.DOTALL)
+        if answer_match:
+            response_text = answer_match.group(1).strip()
 
         if response_text.startswith("Assistant:"):
             response_text = response_text[len("Assistant:"):].strip()
@@ -281,7 +408,7 @@ class CollectiveModel:
                 response_text = response_text.split(marker, 1)[0].strip()
 
         cleaned = CollectiveModel._remove_repeated_paragraphs(response_text)
-        return cleaned or response_text.strip()
+        return cleaned or response_text.strip() or original
 
     def generate_response(
         self,
@@ -325,6 +452,13 @@ class CollectiveModel:
                 print("\r" + " " * 30 + "\r", end="", flush=True)
             
             response_text = self._finalize_response_text(response_text)
+
+            # Safety retry: if cleanup produced empty text, regenerate once with no RAG/history.
+            if not response_text:
+                retry_messages = self._build_messages(user_input, [], [])
+                retry_text = self._finalize_response_text(self._call_text_generation(retry_messages))
+                if retry_text:
+                    response_text = retry_text
             
             # Validate response
             if not response_text or not response_text.strip():

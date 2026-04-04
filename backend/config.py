@@ -1,6 +1,9 @@
 import os
 from dotenv import load_dotenv
 
+# Load .env relative to this file so CLI/web behave the same regardless of cwd.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_HERE, ".env"))
 load_dotenv()
 
 # ============= SECURITY: NEVER expose tokens in code =============
@@ -28,7 +31,7 @@ CHAT_TIMEOUT_SECONDS = float(chat_timeout_env) if chat_timeout_env else 80.0
 rag_timeout_env = os.getenv("RAG_TIMEOUT_SECONDS", "").strip()
 RAG_TIMEOUT_SECONDS = float(rag_timeout_env) if rag_timeout_env else 12.0
 max_output_tokens_env = os.getenv("MAX_OUTPUT_TOKENS", "").strip()
-MAX_OUTPUT_TOKENS = int(max_output_tokens_env) if max_output_tokens_env else 224
+MAX_OUTPUT_TOKENS = int(max_output_tokens_env) if max_output_tokens_env else None
 SUPPRESS_HF_LOGS = True  
 
 # ============= RAG Configuration =============

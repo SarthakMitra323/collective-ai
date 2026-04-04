@@ -70,27 +70,43 @@ logger.info("Initializing Collective AI Backend...")
 ai_engine = None
 _knowledge_base = None
 _session_histories: dict[str, list[dict[str, str]]] = {}
-_llm_warmup_started = False
+_startup_ready = threading.Event()
+_startup_error: str | None = None
 
 
-def _warmup_llm_background():
+def _startup_initialize_blocking():
+    global _startup_error
     try:
-        logger.info("Starting HF warmup request for deployment...")
+        logger.info("Starting eager startup initialization...")
         engine = get_ai_engine()
-        engine.warmup()
-        logger.info("HF warmup completed")
+        # Eagerly initialize HF client so first web request is not cold.
+        engine._init_client()
+        if WARMUP_LLM_ON_STARTUP:
+            engine.warmup()
+        logger.info("Warming RAG embedder and Pinecone connection...")
+        kb = get_knowledge_base()
+        _ = kb.embedder
+        _ = kb.count()
+        logger.info("Startup initialization completed")
+        _startup_ready.set()
     except Exception as e:
-        logger.warning(f"HF warmup failed: {e}")
+        _startup_error = str(e)
+        logger.warning(f"Startup initialization failed: {e}")
 
 
 @app.on_event("startup")
 async def warmup_on_startup():
-    global _llm_warmup_started
-    if not WARMUP_LLM_ON_STARTUP or _llm_warmup_started:
-        return
-    _llm_warmup_started = True
-    threading.Thread(target=_warmup_llm_background, daemon=True).start()
-    logger.info("HF warmup scheduled (timeout=%ss)", WARMUP_LLM_TIMEOUT_SECONDS)
+    await asyncio.to_thread(_startup_initialize_blocking)
+
+
+@app.get("/api/ready")
+async def ready_check():
+    if _startup_ready.is_set():
+        return {"status": "ready"}
+    detail = {"status": "warming"}
+    if _startup_error:
+        detail["error"] = _startup_error[:200]
+    raise HTTPException(status_code=503, detail=detail)
 
 def get_ai_engine():
     global ai_engine
@@ -270,10 +286,11 @@ async def chat_endpoint(request: ChatRequest):
 
         chat_history = _session_histories[session_key]
 
-        # 1. Retrieve relevant context from Knowledge Base with an explicit timeout.
-        context_docs = await asyncio.wait_for(
-            asyncio.to_thread(get_knowledge_base().search, request.message, 2),
-            timeout=RAG_TIMEOUT_SECONDS,
+        # 1. Retrieve relevant context from Knowledge Base.
+        context_docs = await asyncio.to_thread(
+            get_knowledge_base().search,
+            request.message,
+            2,
         )
         after_rag = asyncio.get_running_loop().time()
         if context_docs:
@@ -282,15 +299,12 @@ async def chat_endpoint(request: ChatRequest):
             logger.debug("No context docs found")
 
         # 2. Generate response with RAG context
-        response_text = await asyncio.wait_for(
-            asyncio.to_thread(
-                engine.generate_response,
-                request.message,
-                context_docs,
-                chat_history,
-                False,
-            ),
-            timeout=CHAT_TIMEOUT_SECONDS,
+        response_text = await asyncio.to_thread(
+            engine.generate_response,
+            request.message,
+            context_docs,
+            chat_history,
+            False,
         )
         after_llm = asyncio.get_running_loop().time()
         logger.info(f"Response generated: {len(response_text)} chars")
@@ -311,15 +325,6 @@ async def chat_endpoint(request: ChatRequest):
             "context_used": len(context_docs),
             "status": "success"
         }
-    except asyncio.TimeoutError:
-        elapsed = asyncio.get_running_loop().time() - start_time
-        logger.warning(
-            "Chat timed out after %.2fs (rag_timeout=%ss, chat_timeout=%ss)",
-            elapsed,
-            RAG_TIMEOUT_SECONDS,
-            CHAT_TIMEOUT_SECONDS,
-        )
-        raise HTTPException(status_code=504, detail="AI response timed out")
     except Exception as e:
         logger.exception(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
