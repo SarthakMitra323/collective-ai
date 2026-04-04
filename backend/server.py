@@ -88,21 +88,28 @@ def _startup_initialize_blocking():
         _ = kb.embedder
         _ = kb.count()
         logger.info("Startup initialization completed")
-        _startup_ready.set()
     except Exception as e:
         _startup_error = str(e)
         logger.warning(f"Startup initialization failed: {e}")
+    finally:
+        # Keep the service routable even if warmup or external dependencies fail.
+        _startup_ready.set()
 
 
 @app.on_event("startup")
 async def warmup_on_startup():
-    await asyncio.to_thread(_startup_initialize_blocking)
+    _startup_ready.set()
+    app.state.startup_task = asyncio.create_task(asyncio.to_thread(_startup_initialize_blocking))
 
 
 @app.get("/api/ready")
 async def ready_check():
     if _startup_ready.is_set():
-        return {"status": "ready"}
+        detail = {"status": "ready"}
+        if _startup_error:
+            detail["warning"] = _startup_error[:200]
+            detail["status"] = "ready_with_warnings"
+        return detail
     detail = {"status": "warming"}
     if _startup_error:
         detail["error"] = _startup_error[:200]
