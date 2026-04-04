@@ -1,46 +1,7 @@
 {
-  "rewrites": [
-    {
-      "source": "/app",
-      "destination": "/frontend/app.html"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/frontend/dashboard.html"
-    },
-    {
-      "source": "/contribution",
-      "destination": "/frontend/contribution.html"
-    },
-    {
-      "source": "/leaderboard",
-      "destination": "/frontend/leaderboard.html"
-    },
-    {
-      "source": "/uptime",
-      "destination": "/frontend/uptime.html"
-    },
-    {
-      "source": "/status",
-      "destination": "/frontend/uptime.html"
-    },
-    {
-      "source": "/terms",
-      "destination": "/frontend/terms.html"
-    },
-    {
-      "source": "/privacy",
-      "destination": "/frontend/privacy.html"
-    }
-  ],
   "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "status": 404,
-      "dest": "/frontend/page_not_found.html"
-    }
+    { "handle": "filesystem" },
+    { "src": "/api/:match*", "dest": "https://collective-ai-backend.onrender.com/api/:match*" },
+    { "src": "/(.*)", "status": 404, "dest": "/frontend/page_not_found.html" }
   ]
 }
