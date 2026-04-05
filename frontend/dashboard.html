@@ -391,6 +391,24 @@ onAuthStateChanged(auth,async user=>{
     location.href='app.html';
     return;
   }
+  
+  // Test backend connectivity
+  (async function testBackendConnectivity(){
+    for(var i=0;i<CHAT_BACKEND_CANDIDATES.length;i++){
+      var base=CHAT_BACKEND_CANDIDATES[i];
+      try{
+        var r=await fetch((base||'')+'/api/test',{method:'GET',mode:'cors',timeout:5000});
+        console.log('Backend test '+base+': HTTP '+r.status);
+        if(r.ok){
+          console.log('✅ Backend '+base+' is reachable');
+          break;
+        }
+      }catch(e){
+        console.log('❌ Backend '+base+' unreachable: '+e.message);
+      }
+    }
+  })();
+  
   me=user;ui.setUser(user);
   onSnapshot(query(sCol(),orderBy('createdAt','desc')),snap=>{
     ui.sessions=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -465,31 +483,16 @@ ui.setHandleSend(async function(text){
       throw new Error('No backend candidates available');
     }
 
-    const payload={message:text,sessionId:ui.curSess.id,userId:me.uid,stream:true};
+    const payload={message:text,sessionId:ui.curSess.id,userId:me.uid,stream:false};
     const chatResult=await fetchChatWithFallback(payload);
     const res=chatResult.res;
     usedBackend=chatResult.backend;
 
     ui.removeLoader(lid);
     if(!res.ok)throw new Error('HTTP '+res.status);
-    var reply='';
-    var aiRow=ui.addMsg('ai','',false);
-    if(res.body&&res.headers.get('content-type')&&res.headers.get('content-type').indexOf('text/plain')!==-1){
-      const reader=res.body.getReader();
-      const decoder=new TextDecoder();
-      while(true){
-        const chunk=await reader.read();
-        if(chunk.done)break;
-        reply+=decoder.decode(chunk.value,{stream:true});
-        ui.setMsgText(aiRow,reply||'\u2026');
-      }
-      reply=reply||'\u2026';
-      ui.setMsgText(aiRow,reply);
-    }else{
-      const data=await res.json();
-      reply=data.reply||'\u2026';
-      ui.setMsgText(aiRow,reply);
-    }
+    const data=await res.json();
+    var reply=data.reply||'\u2026';
+    var aiRow=ui.addMsg('ai',reply,false);
     try{await addDoc(mCol(ui.curSess.id),{role:'ai',text:reply,createdAt:serverTimestamp()});}catch{}
   }catch(err){
     ui.removeLoader(lid);
