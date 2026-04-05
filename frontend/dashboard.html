@@ -284,6 +284,14 @@ function addMsg(role,text,noAnim){
   row.querySelector('.cp-btn').onclick=function(){navigator.clipboard.writeText(text).then(function(){toast('Copied!');});};
   msgsEl.appendChild(row);scrollBot();return row;
 }
+function setMsgText(row,text){
+  if(!row)return;
+  var t=row.querySelector('.mtxt');
+  if(t)t.innerHTML=fmt(text||'');
+  var cp=row.querySelector('.cp-btn');
+  if(cp)cp.onclick=function(){navigator.clipboard.writeText(text||'').then(function(){toast('Copied!');});};
+  scrollBot();
+}
 function addLoader(){var id='ld'+Date.now();var row=document.createElement('div');row.id=id;row.className='mrow ai';row.innerHTML='<div class="mav">'+BOLT+'</div><div class="mbody"><div class="mwho">Collective AI</div><div class="mtxt"><div class="typing"><span></span><span></span><span></span></div></div></div>';msgsEl.appendChild(row);scrollBot();return id;}
 function removeLoader(id){var el=document.getElementById(id);if(el)el.remove();}
 
@@ -322,7 +330,7 @@ window._ui={
   get initials(){return initials;},set initials(v){initials=v;},
   get busy(){return busy;},set busy(v){busy=v;},
   addMsg,addLoader,removeLoader,showWelcome,showSession,renderSessions,
-  toast,scrollBot,updateSend,closeSB,
+  toast,scrollBot,updateSend,closeSB,setMsgText,
   setUser:function(u){
     var n=u.displayName||((u.email||'').split('@')[0])||'User';
     initials=n.charAt(0).toUpperCase();
@@ -422,7 +430,7 @@ ui.setHandleSend(async function(text){
         method:'POST',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:text,sessionId:ui.curSess.id,userId:me.uid})
+        body:JSON.stringify({message:text,sessionId:ui.curSess.id,userId:me.uid,stream:true})
       });
     }
 
@@ -437,8 +445,24 @@ ui.setHandleSend(async function(text){
 
     ui.removeLoader(lid);
     if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json(),reply=data.reply||'\u2026';
-    ui.addMsg('ai',reply,false);
+    var reply='';
+    var aiRow=ui.addMsg('ai','',false);
+    if(res.body&&res.headers.get('content-type')&&res.headers.get('content-type').indexOf('text/plain')!==-1){
+      const reader=res.body.getReader();
+      const decoder=new TextDecoder();
+      while(true){
+        const chunk=await reader.read();
+        if(chunk.done)break;
+        reply+=decoder.decode(chunk.value,{stream:true});
+        ui.setMsgText(aiRow,reply||'\u2026');
+      }
+      reply=reply||'\u2026';
+      ui.setMsgText(aiRow,reply);
+    }else{
+      const data=await res.json();
+      reply=data.reply||'\u2026';
+      ui.setMsgText(aiRow,reply);
+    }
     try{await addDoc(mCol(ui.curSess.id),{role:'ai',text:reply,createdAt:serverTimestamp()});}catch{}
   }catch(err){
     ui.removeLoader(lid);
