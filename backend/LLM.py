@@ -1,17 +1,19 @@
-from huggingface_hub import InferenceClient # type:ignore
+from groq import Groq  # type:ignore
 import sys
 import logging
 from typing import Optional, List, Dict
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 import re
 
+SYSTEM_PROMPT = "You are Collective AI. Answer clearly and concisely using only the necessary context."
+
 try:
-    from .config import HF_TOKEN, HF_MODEL, HF_FALLBACK_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
+    from .config import GROQ_API_KEY, GROQ_MODEL, GROQ_FALLBACK_MODEL, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
 except ImportError:
-    from config import HF_TOKEN, HF_MODEL, HF_FALLBACK_MODEL, HF_PROVIDER, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
+    from config import GROQ_API_KEY, GROQ_MODEL, GROQ_FALLBACK_MODEL, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
 
 if SUPPRESS_HF_LOGS:
-    logging.getLogger("huggingface_hub").setLevel(logging.CRITICAL)
+    logging.getLogger("groq").setLevel(logging.CRITICAL)
     logging.getLogger("transformers").setLevel(logging.CRITICAL)
     logging.getLogger("sentence_transformers").setLevel(logging.CRITICAL)
 
@@ -90,52 +92,38 @@ class CollectiveModel:
 
     def __init__(self):
         self.client = None
-        self.primary_model = HF_MODEL
-        self.model = HF_MODEL
-        self.fallback_model = HF_FALLBACK_MODEL if HF_FALLBACK_MODEL else None
+        self.primary_model = GROQ_MODEL
+        self.model = GROQ_MODEL
+        self.fallback_model = GROQ_FALLBACK_MODEL if GROQ_FALLBACK_MODEL else None
         self._init_error = None
-        self._generation_api_mode: Optional[str] = None
-        if not HF_TOKEN:
-            self._init_error = "HF_TOKEN not configured"
+        if not GROQ_API_KEY:
+            self._init_error = "GROQ_API_KEY not configured"
             logger.error(self._init_error)
             return
 
     def _init_client(self):
-        """Initialize the HF client lazily on first generation."""
+        """Initialize the Groq client lazily on first generation."""
         if self.client is not None:
             return self.client
 
         if self._init_error:
             raise RuntimeError(self._init_error)
 
-        if not HF_TOKEN:
-            self._init_error = "HF_TOKEN not configured"
+        if not GROQ_API_KEY:
+            self._init_error = "GROQ_API_KEY not configured"
             raise RuntimeError(self._init_error)
 
         try:
-            client_kwargs: Dict[str, object] = {
-                "api_key": HF_TOKEN,
-                "timeout": REQUEST_TIMEOUT,
-            }
-            provider = HF_PROVIDER.lower() if HF_PROVIDER else ""
-            if provider in {"auto", "featherless-ai"}:
-                provider = ""
-            if provider:
-                client_kwargs["provider"] = HF_PROVIDER
-
-            self.client = InferenceClient(**client_kwargs)
+            self.client = Groq(api_key=GROQ_API_KEY, timeout=REQUEST_TIMEOUT)
             logger.info("LLM initialized: %s", self._resolved_model(self.primary_model))
             return self.client
         except Exception as e:
             self._init_error = str(e)
-            logger.exception("Failed to initialize HuggingFace client")
-            raise RuntimeError(f"Failed to initialize HuggingFace client: {e}")
+            logger.exception("Failed to initialize Groq client")
+            raise RuntimeError(f"Failed to initialize Groq client: {e}")
 
     def _resolved_model(self, model: Optional[str] = None) -> str:
-        model = model or self.model
-        # InferenceClient expects a plain HF model repo id for this code path.
-        # Router policies like ':fastest' are for the OpenAI-compatible endpoint.
-        return model
+        return model or self.model
 
     @staticmethod
     def _build_prompt(
@@ -144,15 +132,12 @@ class CollectiveModel:
     ) -> str:
         context_section = ""
         if context_docs and len(context_docs) > 0:
-            context_section = "\n\nKnowledge base context:\n"
-            for i, doc in enumerate(context_docs[:3], 1):
-                doc_preview = doc[:180] + ("..." if len(doc) > 180 else "")
-                context_section += f"  {i}. {doc_preview}\n"
+            context_section = "\nContext:\n"
+            for i, doc in enumerate(context_docs[:2], 1):
+                doc_preview = doc[:120] + ("..." if len(doc) > 120 else "")
+                context_section += f"{i}. {doc_preview}\n"
         
-        prompt = (
-            f"Answer clearly and use prior turns for context.{context_section}\n\n"
-            f"Question: {user_input}"
-        )
+        prompt = f"{context_section}Question: {user_input}"
         return prompt
 
     def _build_messages(
@@ -162,9 +147,14 @@ class CollectiveModel:
         chat_history: Optional[List[Dict[str, str]]] = None,
     ) -> List[Dict[str, str]]:
         # Build chat-completion messages with short memory window.
-        messages: List[Dict[str, str]] = []
+        messages: List[Dict[str, str]] = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            }
+        ]
 
-        for msg in (chat_history or [])[-6:]:
+        for msg in (chat_history or [])[-4:]:
             role = msg.get("role", "")
             content = msg.get("content", "").strip()
             if role in ("user", "assistant") and content:
@@ -176,58 +166,20 @@ class CollectiveModel:
         })
         return messages
 
-    def _build_generation_prompt(self, messages: List[Dict[str, str]]) -> str:
-        """Convert role-based messages into a single instruction-style prompt."""
-        lines: List[str] = [
-            "<s>[INST]",
-            "You are Collective AI.",
-            "Answer the user clearly and concisely.",
-            "Do not output role labels.",
-            "Conversation:",
-        ]
-
-        for msg in messages:
-            role = msg.get("role", "")
-            content = msg.get("content", "").strip()
-            if not content:
-                continue
-            if role == "assistant":
-                lines.append(f"Assistant: {content}")
-            else:
-                lines.append(f"User: {content}")
-
-        lines.append("")
-        lines.append("Now provide the assistant reply to the final user message only.")
-        lines.append("[/INST]")
-        return "\n".join(lines)
-
     @staticmethod
     def _estimate_input_tokens(text: str) -> int:
         """Roughly estimate tokens so we can keep requests inside the model window."""
         return max(1, len(text) // 4)
 
-    def _generation_budget(self, prompt: str) -> Optional[int]:
+    def _generation_budget(self, messages: List[Dict[str, str]]) -> Optional[int]:
         """Pick output budget; unlimited when MAX_OUTPUT_TOKENS is not configured."""
         if MAX_OUTPUT_TOKENS is None:
             return None
-        prompt_tokens = self._estimate_input_tokens(prompt)
-        reserved_for_prompt = 48
-        remaining = 4096 - prompt_tokens - reserved_for_prompt
+        approx_text = "\n".join(msg.get("content", "") for msg in messages)
+        prompt_tokens = self._estimate_input_tokens(approx_text)
+        reserved_for_prompt = 32
+        remaining = 8192 - prompt_tokens - reserved_for_prompt
         return max(64, min(MAX_OUTPUT_TOKENS, remaining))
-
-    def _infer_preferred_mode(self, client, model_name: Optional[str] = None) -> str:
-        model_lower = (model_name or self.model).lower()
-        has_chat = hasattr(client, "chat_completion")
-        has_text = hasattr(client, "text_generation")
-        if has_chat and ("deepseek" in model_lower or "instruct" in model_lower or "chat" in model_lower):
-            return "chat"
-        if self._generation_api_mode in {"text", "chat"}:
-            return self._generation_api_mode
-        if has_text:
-            return "text"
-        if has_chat:
-            return "chat"
-        return "text"
 
     def _call_chat_completion(
         self,
@@ -235,7 +187,6 @@ class CollectiveModel:
         messages: List[Dict[str, str]],
         max_output_tokens: Optional[int],
         model: Optional[str] = None,
-        include_stop: bool = True,
     ) -> str:
         chat_kwargs: Dict[str, object] = {
             "model": self._resolved_model(model),
@@ -244,9 +195,7 @@ class CollectiveModel:
         }
         if max_output_tokens is not None:
             chat_kwargs["max_tokens"] = max_output_tokens
-        if include_stop:
-            chat_kwargs["stop"] = ["\nUser:", "\n### User:"]
-        out = client.chat_completion(**chat_kwargs)
+        out = client.chat.completions.create(**chat_kwargs)
         choices = getattr(out, "choices", None) or []
         if not choices:
             return ""
@@ -256,26 +205,36 @@ class CollectiveModel:
             return extracted
         return ""
 
-    def _call_text_completion(self, client, prompt: str, max_output_tokens: Optional[int], model: Optional[str] = None) -> str:
-        generation_kwargs: Dict[str, object] = {
+    def _stream_chat_completion(
+        self,
+        client,
+        messages: List[Dict[str, str]],
+        max_output_tokens: Optional[int],
+        model: Optional[str] = None,
+    ):
+        chat_kwargs: Dict[str, object] = {
             "model": self._resolved_model(model),
-            "prompt": prompt,
+            "messages": messages,
             "temperature": 0.3,
-            "repetition_penalty": 1.1,
-            "return_full_text": False,
-            "stop": ["\nUser:", "\n### User:"],
-            "do_sample": False,
+            "stream": True,
         }
         if max_output_tokens is not None:
-            generation_kwargs["max_new_tokens"] = max_output_tokens
-        out = client.text_generation(**generation_kwargs)
-        return str(out).strip()
+            chat_kwargs["max_tokens"] = max_output_tokens
+
+        stream = client.chat.completions.create(**chat_kwargs)
+        for chunk in stream:
+            choices = getattr(chunk, "choices", None) or []
+            if not choices:
+                continue
+            delta = getattr(choices[0], "delta", None)
+            text = getattr(delta, "content", None)
+            if isinstance(text, str) and text:
+                yield text
 
     def _call_text_generation(self, messages: List[Dict[str, str]]) -> str:
-        """Call HF inference with automatic fallback between text and chat tasks."""
+        """Call Groq chat completion with model fallback."""
         client = self._init_client()
-        prompt = self._build_generation_prompt(messages)
-        max_output_tokens = self._generation_budget(prompt)
+        max_output_tokens = self._generation_budget(messages)
         candidate_models = [self.primary_model]
         if self.fallback_model and self.fallback_model != self.primary_model:
             candidate_models.append(self.fallback_model)
@@ -283,109 +242,68 @@ class CollectiveModel:
         last_error: Optional[Exception] = None
         for candidate in candidate_models:
             try:
-                preferred_mode = self._infer_preferred_mode(client, candidate)
-                if preferred_mode == "chat" and hasattr(client, "chat_completion"):
-                    response = self._run_with_timeout(
-                        self._call_chat_completion,
-                        client,
-                        messages,
-                        max_output_tokens,
-                        candidate,
-                    )
-                    self._generation_api_mode = "chat"
-                    if not response:
-                        # Retry once without stop markers; some providers emit an empty first chunk
-                        # if the sampled continuation starts with a stop sequence.
-                        response = self._run_with_timeout(
-                            self._call_chat_completion,
-                            client,
-                            messages,
-                            max_output_tokens,
-                            candidate,
-                            False,
-                        )
-                    if not response and hasattr(client, "text_generation"):
-                        response = self._run_with_timeout(
-                            self._call_text_completion,
-                            client,
-                            prompt,
-                            max_output_tokens,
-                            candidate,
-                        )
-                        self._generation_api_mode = "text"
-                    return response
-                if preferred_mode == "text" and hasattr(client, "text_generation"):
-                    response = self._run_with_timeout(
-                        self._call_text_completion,
-                        client,
-                        prompt,
-                        max_output_tokens,
-                        candidate,
-                    )
-                    self._generation_api_mode = "text"
-                    return response
-
-                # Secondary fallback if preferred mode is unavailable in current client version.
-                if preferred_mode != "chat" and hasattr(client, "chat_completion") and "deepseek" not in candidate.lower():
-                    self._generation_api_mode = "chat"
-                    response = self._run_with_timeout(
-                        self._call_chat_completion,
-                        client,
-                        messages,
-                        max_output_tokens,
-                        candidate,
-                    )
-                    return response
-                if preferred_mode != "text" and hasattr(client, "text_generation") and "deepseek" not in candidate.lower():
-                    self._generation_api_mode = "text"
-                    response = self._run_with_timeout(
-                        self._call_text_completion,
-                        client,
-                        prompt,
-                        max_output_tokens,
-                        candidate,
-                    )
-                    return response
-            except ValueError as e:
+                return self._run_with_timeout(
+                    self._call_chat_completion,
+                    client,
+                    messages,
+                    max_output_tokens,
+                    candidate,
+                )
+            except Exception as e:
                 last_error = e
-                msg = str(e).lower()
-                unsupported = "not supported by any provider" in msg or "model_not_supported" in msg
-                # Some providers route this model under conversational only.
-                if "supported task" in msg and "conversational" in msg and hasattr(client, "chat_completion"):
-                    self._generation_api_mode = "chat"
-                    try:
-                        response = self._run_with_timeout(
-                            self._call_chat_completion,
-                            client,
-                            messages,
-                            max_output_tokens,
-                            candidate,
-                        )
-                        return response
-                    except Exception as inner_e:
-                        last_error = inner_e
-                if unsupported:
-                    logger.warning("Model unsupported on current route: %s", candidate)
-                    continue
-                raise
+                logger.warning("Model call failed for '%s': %s", candidate, e)
+                continue
 
         if last_error:
             raise last_error
 
-        raise AttributeError(
-            "InferenceClient generation APIs are unavailable. "
-            "Upgrade huggingface-hub to a newer version."
-        )
+        raise RuntimeError("No Groq model could produce a response.")
 
     def warmup(self) -> None:
         """Prime the provider/model with a tiny request after deployment."""
         messages = [
-            {"role": "system", "content": "You are Collective AI."},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": "Reply with one word: ready"},
         ]
         response = self._call_text_generation(messages)
         if not response:
             raise RuntimeError("Warmup produced empty response")
+
+    def stream_response(
+        self,
+        user_input: str,
+        context_docs: Optional[List[str]] = None,
+        chat_history: Optional[List[Dict[str, str]]] = None,
+    ):
+        """Yield streamed response tokens from Groq."""
+        if not isinstance(user_input, str) or not user_input.strip():
+            raise ValueError("Please provide a valid question.")
+
+        user_input = user_input.strip()
+        context_docs = context_docs or []
+        messages = self._build_messages(user_input, context_docs, chat_history)
+        client = self._init_client()
+        max_output_tokens = self._generation_budget(messages)
+
+        candidate_models = [self.primary_model]
+        if self.fallback_model and self.fallback_model != self.primary_model:
+            candidate_models.append(self.fallback_model)
+
+        last_error: Optional[Exception] = None
+        for candidate in candidate_models:
+            try:
+                for token in self._stream_chat_completion(client, messages, max_output_tokens, candidate):
+                    yield token
+                return
+            except Exception as e:
+                last_error = e
+                logger.warning("Streaming model call failed for '%s': %s", candidate, e)
+                continue
+
+        if last_error:
+            raise last_error
+
+        raise RuntimeError("No Groq model could produce a streamed response.")
 
     @staticmethod
     def _finalize_response_text(response_text: str) -> str:
@@ -417,7 +335,7 @@ class CollectiveModel:
         chat_history: Optional[List[Dict[str, str]]] = None,
         show_thinking: bool = True
     ) -> str:
-        """Generate response using HuggingFace text-generation API.
+        """Generate response using Groq chat completions.
         
         Args:
             user_input: User query
@@ -470,15 +388,12 @@ class CollectiveModel:
             if show_thinking:
                 print("\r" + " " * 30 + "\r", end="", flush=True)
             logger.warning(f"ValueError: {e}")
-            lower = str(e).lower()
-            if "not supported by any provider you have enabled" in lower:
-                return "❌ Provider routing error. Set HF_PROVIDER to a supported provider, or leave it empty to use Hugging Face fastest routing."
             return "❌ Input error. Try again."
         except AttributeError as e:
             if show_thinking:
                 print("\r" + " " * 30 + "\r", end="", flush=True)
             logger.error(f"AttributeError: {e}")
-            return "❌ Inference client is outdated. Update dependencies and retry."
+            return "❌ Groq client error. Update dependencies and retry."
         except TimeoutError as e:
             if show_thinking:
                 print("\r" + " " * 30 + "\r", end="", flush=True)

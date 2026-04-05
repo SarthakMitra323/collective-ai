@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware  #type:ignore
 from pydantic import BaseModel
 import uvicorn # type:ignore
 import logging
+from fastapi.responses import StreamingResponse  # type:ignore
 
 try:
     from .LLM import CollectiveModel
@@ -41,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Collective AI Backend",
-    description="RAG-powered AI with HuggingFace Inference API",
+    description="RAG-powered AI with Groq API",
     docs_url="/docs" if DEBUG_MODE else None
 )
 
@@ -79,7 +80,7 @@ def _startup_initialize_blocking():
     try:
         logger.info("Starting eager startup initialization...")
         engine = get_ai_engine()
-        # Eagerly initialize HF client so first web request is not cold.
+        # Eagerly initialize Groq client so first web request is not cold.
         engine._init_client()
         if WARMUP_LLM_ON_STARTUP:
             engine.warmup()
@@ -136,6 +137,7 @@ class ChatRequest(BaseModel):
     message: str
     sessionId: str | None = None
     userId: str | None = None
+    stream: bool = False
 
 class ContributionRequest(BaseModel):
     content: str | None = None  # From HTML form
@@ -311,6 +313,26 @@ async def chat_endpoint(request: ChatRequest):
             logger.debug(f"Found {len(context_docs)} context docs")
         else:
             logger.debug("No context docs found")
+
+        if request.stream:
+            def stream_reply():
+                response_parts: list[str] = []
+                try:
+                    for token in engine.stream_response(request.message, context_docs, chat_history):
+                        response_parts.append(token)
+                        yield token
+                finally:
+                    response_text = engine._finalize_response_text("".join(response_parts))
+                    if response_text:
+                        chat_history.append({"role": "user", "content": request.message})
+                        chat_history.append({"role": "assistant", "content": response_text})
+                        if len(chat_history) > 20:
+                            _session_histories[session_key] = chat_history[-20:]
+                        else:
+                            _session_histories[session_key] = chat_history
+                        logger.info(f"Streamed response generated: {len(response_text)} chars")
+
+            return StreamingResponse(stream_reply(), media_type="text/plain; charset=utf-8")
 
         # 2. Generate response with RAG context
         response_text = await asyncio.to_thread(

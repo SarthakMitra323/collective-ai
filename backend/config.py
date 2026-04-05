@@ -7,14 +7,13 @@ load_dotenv(os.path.join(_HERE, ".env"))
 load_dotenv()
 
 # ============= SECURITY: NEVER expose tokens in code =============
-HF_TOKEN = os.getenv("HF_TOKEN", "")  
-if not HF_TOKEN:
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+if not GROQ_API_KEY:
     import warnings
-    warnings.warn("HF_TOKEN not set. AI features will be unavailable.")
+    warnings.warn("GROQ_API_KEY not set. AI features will be unavailable.")
 
-HF_MODEL = os.getenv("HF_MODEL", "deepseek-ai/DeepSeek-R1")
-HF_FALLBACK_MODEL = os.getenv("HF_FALLBACK_MODEL", "deepseek-ai/DeepSeek-V2-Chat").strip()
-HF_PROVIDER = os.getenv("HF_PROVIDER", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
+GROQ_FALLBACK_MODEL = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.3-70b-versatile").strip()
 REMOTE_LLM = True
 
 max_response_length_env = os.getenv("MAX_RESPONSE_LENGTH", "").strip()
@@ -32,7 +31,7 @@ rag_timeout_env = os.getenv("RAG_TIMEOUT_SECONDS", "").strip()
 RAG_TIMEOUT_SECONDS = float(rag_timeout_env) if rag_timeout_env else 12.0
 max_output_tokens_env = os.getenv("MAX_OUTPUT_TOKENS", "").strip()
 MAX_OUTPUT_TOKENS = int(max_output_tokens_env) if max_output_tokens_env else None
-SUPPRESS_HF_LOGS = True  
+SUPPRESS_HF_LOGS = True
 
 # ============= RAG Configuration =============
 DB_PATH = os.getenv("DB_PATH", "./collective_memory.db")
@@ -57,5 +56,5 @@ SERVER_PORT = int(os.getenv("PORT", 3000))
 DEBUG_MODE = os.getenv("DEBUG", "false").lower() == "true"
 
 # ============= Validation =============
-assert HF_MODEL, "HF_MODEL must be set"
+assert GROQ_MODEL, "GROQ_MODEL must be set"
 assert SERVER_PORT > 0 and SERVER_PORT < 65536, "Invalid PORT"

@@ -1,4 +1,5 @@
 import uuid
+import warnings
 from sentence_transformers import SentenceTransformer # type:ignore
 try:
     from .config import (
@@ -28,6 +29,13 @@ os.environ['TRANSFORMERS_VERBOSITY'] = 'critical'
 import logging
 logging.getLogger("sentence_transformers").setLevel(logging.CRITICAL)
 logging.getLogger("transformers").setLevel(logging.CRITICAL)
+
+# Silence the Hugging Face Hub warning about unauthenticated public downloads.
+warnings.filterwarnings(
+    "ignore",
+    message=r"Warning: You are sending unauthenticated requests to the HF Hub.*",
+    category=UserWarning,
+)
 
 
 class KnowledgeBase:
