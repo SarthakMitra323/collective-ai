@@ -66,6 +66,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Explicit OPTIONS handler for CORS preflight
+@app.api_route("/api/{path:path}", methods=["OPTIONS"])
+async def options_handler(path: str):
+    return {"status": "ok"}
+
 # Lazy-load model and knowledge base
 logger.info("Initializing Collective AI Backend...")
 ai_engine = None
@@ -174,6 +179,12 @@ def home():
 @app.api_route("/healthz", methods=["GET", "HEAD"])
 async def healthz_check():
     return await ready_check()
+
+
+@app.api_route("/api/test", methods=["GET", "HEAD", "OPTIONS"])
+async def test_endpoint():
+    """Simple connectivity test endpoint (no streaming, no heavy deps)."""
+    return {"status": "backend_alive", "timestamp": asyncio.get_running_loop().time()}
 
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
