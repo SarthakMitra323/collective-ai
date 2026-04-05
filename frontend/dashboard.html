@@ -353,9 +353,12 @@ const{initializeApp}=await import('https://www.gstatic.com/firebasejs/11.6.1/fir
 const{getAuth,onAuthStateChanged,signOut}=await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
 const{getFirestore,collection,doc,addDoc,getDocs,deleteDoc,serverTimestamp,query,orderBy,onSnapshot}=await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
 
-const BACKEND = location.hostname === 'localhost'
-  ? 'http://localhost:8000'
-  : '';
+const LOCAL_BACKEND = 'http://localhost:8000';
+const PROD_BACKEND = 'https://collective-ai-backend.onrender.com';
+const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND : '';
+const CHAT_BACKEND_CANDIDATES = location.hostname === 'localhost'
+  ? [LOCAL_BACKEND]
+  : ['', PROD_BACKEND];
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
@@ -425,23 +428,47 @@ ui.setHandleSend(async function(text){
   try{await addDoc(mCol(ui.curSess.id),{role:'user',text,createdAt:serverTimestamp()});}catch{}
   const lid=ui.addLoader();
   try{
-    async function fetchChatOnce(){
-      return await fetch(BACKEND+'/api/chat',{
+    var usedBackend=BACKEND;
+    async function fetchChatOnce(baseUrl,payload){
+      return await fetch(baseUrl+'/api/chat',{
         method:'POST',
         mode:'cors',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:text,sessionId:ui.curSess.id,userId:me.uid,stream:true})
+        body:JSON.stringify(payload)
       });
     }
 
-    let res;
-    try{
-      res=await fetchChatOnce();
-    }catch(firstErr){
-      // Retry once only for transient network-level failures.
-      await new Promise(function(r){ setTimeout(r, 900); });
-      res=await fetchChatOnce();
+    async function fetchChatWithFallback(payload){
+      var lastError=null;
+      var lastResponse=null;
+      for(var i=0;i<CHAT_BACKEND_CANDIDATES.length;i++){
+        var base=CHAT_BACKEND_CANDIDATES[i];
+        try{
+          var r=await fetchChatOnce(base,payload);
+          if(r.ok)return {res:r,backend:base};
+          lastResponse=r;
+          // 5xx from proxy/upstream: try next candidate if available.
+          if((r.status===502||r.status===503||r.status===504)&&i<CHAT_BACKEND_CANDIDATES.length-1){
+            continue;
+          }
+          return {res:r,backend:base};
+        }catch(err){
+          lastError=err;
+          if(i<CHAT_BACKEND_CANDIDATES.length-1){
+            await new Promise(function(r){ setTimeout(r, 700); });
+            continue;
+          }
+        }
+      }
+      if(lastError)throw lastError;
+      if(lastResponse)return {res:lastResponse,backend:CHAT_BACKEND_CANDIDATES[0]};
+      throw new Error('No backend candidates available');
     }
+
+    const payload={message:text,sessionId:ui.curSess.id,userId:me.uid,stream:true};
+    const chatResult=await fetchChatWithFallback(payload);
+    const res=chatResult.res;
+    usedBackend=chatResult.backend;
 
     ui.removeLoader(lid);
     if(!res.ok)throw new Error('HTTP '+res.status);
@@ -475,7 +502,8 @@ ui.setHandleSend(async function(text){
     console.error('Chat fetch failed',{
       errorName: err&&err.name,
       errorMessage: err&&err.message,
-      backend: BACKEND,
+      backend: usedBackend,
+      backendCandidates: CHAT_BACKEND_CANDIDATES,
       online: navigator.onLine
     });
   }
