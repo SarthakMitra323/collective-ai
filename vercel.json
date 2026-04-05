@@ -1,7 +1,20 @@
 {
-  "routes": [
-    { "src": "/api/(.*)", "dest": "https://collective-ai-backend.onrender.com/api/$1" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "status": 404, "dest": "/frontend/page_not_found.html" }
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://collective-ai-backend.onrender.com/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
   ]
 }
+
+
+
+
