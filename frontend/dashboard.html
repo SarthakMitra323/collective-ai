@@ -358,7 +358,7 @@ const PROD_BACKEND = 'https://collective-ai-backend.onrender.com';
 const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND : '';
 const CHAT_BACKEND_CANDIDATES = location.hostname === 'localhost'
   ? [LOCAL_BACKEND]
-  : ['', PROD_BACKEND];
+  : [PROD_BACKEND, ''];
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
