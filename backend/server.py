@@ -16,9 +16,11 @@ try:
         SERVER_PORT,
         DEBUG_MODE,
         WARMUP_LLM_ON_STARTUP,
+        WARMUP_RAG_ON_STARTUP,
         WARMUP_LLM_TIMEOUT_SECONDS,
         CHAT_TIMEOUT_SECONDS,
         RAG_TIMEOUT_SECONDS,
+        ENABLE_RAG,
     )
 except ImportError:
     from LLM import CollectiveModel
@@ -28,9 +30,11 @@ except ImportError:
         SERVER_PORT,
         DEBUG_MODE,
         WARMUP_LLM_ON_STARTUP,
+        WARMUP_RAG_ON_STARTUP,
         WARMUP_LLM_TIMEOUT_SECONDS,
         CHAT_TIMEOUT_SECONDS,
         RAG_TIMEOUT_SECONDS,
+        ENABLE_RAG,
     )
 
 # Configure logging
@@ -89,10 +93,15 @@ def _startup_initialize_blocking():
         engine._init_client()
         if WARMUP_LLM_ON_STARTUP:
             engine.warmup()
-        logger.info("Warming RAG embedder and Pinecone connection...")
-        kb = get_knowledge_base()
-        _ = kb.embedder
-        _ = kb.count()
+        if ENABLE_RAG and WARMUP_RAG_ON_STARTUP:
+            logger.info("Warming RAG embedder and Pinecone connection...")
+            kb = get_knowledge_base()
+            _ = kb.embedder
+            _ = kb.count()
+        elif not ENABLE_RAG:
+            logger.info("RAG disabled by configuration (ENABLE_RAG=false)")
+        else:
+            logger.info("Skipping RAG warmup (WARMUP_RAG_ON_STARTUP=false)")
         logger.info("Startup initialization completed")
     except Exception as e:
         _startup_error = str(e)
@@ -251,6 +260,13 @@ async def health_check():
 @app.get("/api/stats")
 async def memory_stats():
     """Get knowledge base statistics"""
+    if not ENABLE_RAG:
+        return {
+            "total_documents": 0,
+            "embedding_model": "disabled",
+            "backend": "disabled",
+            "status": "rag_disabled",
+        }
     return {
         "total_documents": get_knowledge_base().count(),
         "embedding_model": "all-MiniLM-L6-v2",
@@ -260,6 +276,8 @@ async def memory_stats():
 @app.post("/api/contribute")
 async def contribute_endpoint(request: ContributionRequest):
     """Add knowledge to the collective memory (from HTML form or API)"""
+    if not ENABLE_RAG:
+        raise HTTPException(status_code=503, detail="Knowledge contributions are temporarily disabled")
     text = request.get_text()
     if not text:
         raise HTTPException(status_code=400, detail="Content cannot be empty")
@@ -285,6 +303,13 @@ async def contribute_endpoint(request: ContributionRequest):
 @app.post("/api/search")
 async def search_endpoint(request: SearchRequest):
     """Search the knowledge base"""
+    if not ENABLE_RAG:
+        return {
+            "query": request.query,
+            "results": [],
+            "count": 0,
+            "status": "rag_disabled",
+        }
     if not request.query:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
     
@@ -315,17 +340,23 @@ async def chat_endpoint(request: ChatRequest):
         chat_history = _session_histories[session_key]
 
         # 1. Retrieve relevant context from Knowledge Base with timeout
-        try:
-            context_docs = await asyncio.wait_for(
-                asyncio.to_thread(
-                    get_knowledge_base().search,
-                    request.message,
-                    2,
-                ),
-                timeout=RAG_TIMEOUT_SECONDS
-            )
-        except asyncio.TimeoutError:
-            logger.warning(f"RAG search timed out after {RAG_TIMEOUT_SECONDS}s")
+        if ENABLE_RAG:
+            try:
+                context_docs = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        get_knowledge_base().search,
+                        request.message,
+                        2,
+                    ),
+                    timeout=RAG_TIMEOUT_SECONDS
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"RAG search timed out after {RAG_TIMEOUT_SECONDS}s")
+                context_docs = []
+            except Exception as rag_error:
+                logger.warning(f"RAG unavailable for this request: {rag_error}")
+                context_docs = []
+        else:
             context_docs = []
         
         after_rag = asyncio.get_running_loop().time()

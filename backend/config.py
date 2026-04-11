@@ -25,10 +25,14 @@ warmup_llm_on_startup_env = os.getenv("WARMUP_LLM_ON_STARTUP", "").strip().lower
 WARMUP_LLM_ON_STARTUP = warmup_llm_on_startup_env != "false"
 warmup_llm_timeout_env = os.getenv("WARMUP_LLM_TIMEOUT_SECONDS", "").strip()
 WARMUP_LLM_TIMEOUT_SECONDS = float(warmup_llm_timeout_env) if warmup_llm_timeout_env else 45.0
+warmup_rag_on_startup_env = os.getenv("WARMUP_RAG_ON_STARTUP", "").strip().lower()
+WARMUP_RAG_ON_STARTUP = warmup_rag_on_startup_env == "true"
 chat_timeout_env = os.getenv("CHAT_TIMEOUT_SECONDS", "").strip()
 CHAT_TIMEOUT_SECONDS = float(chat_timeout_env) if chat_timeout_env else 80.0
 rag_timeout_env = os.getenv("RAG_TIMEOUT_SECONDS", "").strip()
 RAG_TIMEOUT_SECONDS = float(rag_timeout_env) if rag_timeout_env else 12.0
+enable_rag_env = os.getenv("ENABLE_RAG", "").strip().lower()
+ENABLE_RAG = enable_rag_env != "false"
 max_output_tokens_env = os.getenv("MAX_OUTPUT_TOKENS", "").strip()
 MAX_OUTPUT_TOKENS = int(max_output_tokens_env) if max_output_tokens_env else None
 SUPPRESS_HF_LOGS = True
