@@ -2,13 +2,13 @@ services:
   - type: web
     name: collective-ai-backend
     runtime: python
-    pythonVersion: 3.11
+    pythonVersion: "3.11.4"
     plan: standard
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn backend.server:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers 1 --timeout 180 --keep-alive 30
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11
+        value: 3.11.4
       - key: PYTHONUNBUFFERED
         value: true
       - key: ALLOWED_ORIGIN
@@ -22,7 +22,11 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: WARMUP_LLM_ON_STARTUP
-        value: true
+        value: false
+      - key: WARMUP_RAG_ON_STARTUP
+        value: false
+      - key: ENABLE_RAG
+        value: false
       - key: WARMUP_LLM_TIMEOUT_SECONDS
         value: 45
       - key: CHAT_TIMEOUT_SECONDS
@@ -31,6 +35,8 @@ services:
         value: 15
       - key: REQUEST_TIMEOUT
         value: 120
+      - key: PINECONE_API_KEY
+        sync: false
       - key: PINECONE_INDEX
         value: collective-ai-rag
       - key: PINECONE_CLOUD
@@ -40,17 +46,4 @@ services:
       - key: VECTOR_DIMENSION
         value: 384
     autoDeploy: true
-    domains:
-      - key: RENDER_EXTERNAL_HOSTNAME
-    routes:
-      - path: /
-        matchType: prefix
-        priority: 10
     healthCheckPath: /api/ready
-    timeout: 300
-    scaling:
-      minInstances: 1
-      maxInstances: 4
-      targetMemoryPercent: 60
-      targetCPUPercent: 70
-    pullRequestPreviewsEnabled: true
