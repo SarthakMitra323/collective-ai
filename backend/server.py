@@ -305,6 +305,7 @@ async def chat_endpoint(request: ChatRequest):
     logger.debug(f"Chat request from session: {request.sessionId}")
     
     try:
+        # Wrap in timeout to prevent hanging requests
         start_time = asyncio.get_running_loop().time()
         engine = get_ai_engine()
         session_key = (request.sessionId or request.userId or "default").strip()
@@ -313,17 +314,25 @@ async def chat_endpoint(request: ChatRequest):
 
         chat_history = _session_histories[session_key]
 
-        # 1. Retrieve relevant context from Knowledge Base.
-        context_docs = await asyncio.to_thread(
-            get_knowledge_base().search,
-            request.message,
-            2,
-        )
+        # 1. Retrieve relevant context from Knowledge Base with timeout
+        try:
+            context_docs = await asyncio.wait_for(
+                asyncio.to_thread(
+                    get_knowledge_base().search,
+                    request.message,
+                    2,
+                ),
+                timeout=RAG_TIMEOUT_SECONDS
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"RAG search timed out after {RAG_TIMEOUT_SECONDS}s")
+            context_docs = []
+        
         after_rag = asyncio.get_running_loop().time()
         if context_docs:
             logger.debug(f"Found {len(context_docs)} context docs")
         else:
-            logger.debug("No context docs found")
+            logger.debug("No context docs found or RAG timed out")
 
         if request.stream:
             def stream_reply():
@@ -345,14 +354,22 @@ async def chat_endpoint(request: ChatRequest):
 
             return StreamingResponse(stream_reply(), media_type="text/plain; charset=utf-8")
 
-        # 2. Generate response with RAG context
-        response_text = await asyncio.to_thread(
-            engine.generate_response,
-            request.message,
-            context_docs,
-            chat_history,
-            False,
-        )
+        # 2. Generate response with timeout protection
+        try:
+            response_text = await asyncio.wait_for(
+                asyncio.to_thread(
+                    engine.generate_response,
+                    request.message,
+                    context_docs,
+                    chat_history,
+                    False,
+                ),
+                timeout=CHAT_TIMEOUT_SECONDS
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Chat generation timed out after {CHAT_TIMEOUT_SECONDS}s")
+            raise HTTPException(status_code=504, detail="Chat generation timeout - please try again")
+        
         after_llm = asyncio.get_running_loop().time()
         logger.info(f"Response generated: {len(response_text)} chars")
         logger.info(
@@ -372,6 +389,11 @@ async def chat_endpoint(request: ChatRequest):
             "context_used": len(context_docs),
             "status": "success"
         }
+    except asyncio.TimeoutError:
+        logger.error("Chat request exceeded timeout")
+        raise HTTPException(status_code=504, detail="Request timeout")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
