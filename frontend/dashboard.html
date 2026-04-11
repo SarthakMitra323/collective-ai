@@ -358,7 +358,7 @@ const PROD_BACKEND = 'https://collective-ai-backend.onrender.com';
 const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND : '';
 const CHAT_BACKEND_CANDIDATES = location.hostname === 'localhost'
   ? [LOCAL_BACKEND]
-  : [PROD_BACKEND, ''];
+  : [PROD_BACKEND]; // Only direct backend, no fallback
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
@@ -392,19 +392,37 @@ onAuthStateChanged(auth,async user=>{
     return;
   }
   
+  function isValidTestPayload(payload){
+    return payload && payload.status === 'backend_alive';
+  }
+
+  function isValidChatPayload(payload){
+    return payload && typeof payload.reply === 'string' && payload.reply.trim().length > 0;
+  }
+
   // Test backend connectivity
   (async function testBackendConnectivity(){
     for(var i=0;i<CHAT_BACKEND_CANDIDATES.length;i++){
       var base=CHAT_BACKEND_CANDIDATES[i];
       try{
         var r=await fetch((base||'')+'/api/test',{method:'GET',mode:'cors',timeout:5000});
-        console.log('Backend test '+base+': HTTP '+r.status);
+        console.log('Backend test '+(base||'Vercel rewrite')+': HTTP '+r.status);
         if(r.ok){
-          console.log('✅ Backend '+base+' is reachable');
+          var testJson=null;
+          try{
+            testJson=await r.json();
+          }catch(_e){}
+          if(!isValidTestPayload(testJson)){
+            console.warn('⚠️ Backend returned unexpected /api/test payload',testJson);
+            continue;
+          }
+          console.log('✅ Backend '+(base||'Vercel rewrite')+' is reachable');
           break;
+        }else{
+          console.warn('⚠️ Backend returned HTTP '+r.status);
         }
       }catch(e){
-        console.log('❌ Backend '+base+' unreachable: '+e.message);
+        console.log('❌ Backend '+(base||'Vercel rewrite')+' unreachable: '+e.message);
       }
     }
   })();
@@ -459,25 +477,45 @@ ui.setHandleSend(async function(text){
     async function fetchChatWithFallback(payload){
       var lastError=null;
       var lastResponse=null;
+      var retryCount=0;
+      var maxRetries=2;
+      
       for(var i=0;i<CHAT_BACKEND_CANDIDATES.length;i++){
         var base=CHAT_BACKEND_CANDIDATES[i];
-        try{
-          var r=await fetchChatOnce(base,payload);
-          if(r.ok)return {res:r,backend:base};
-          lastResponse=r;
-          // 5xx from proxy/upstream: try next candidate if available.
-          if((r.status===502||r.status===503||r.status===504)&&i<CHAT_BACKEND_CANDIDATES.length-1){
-            continue;
-          }
-          return {res:r,backend:base};
-        }catch(err){
-          lastError=err;
-          if(i<CHAT_BACKEND_CANDIDATES.length-1){
-            await new Promise(function(r){ setTimeout(r, 700); });
-            continue;
+        var attempt=0;
+        
+        while(attempt<maxRetries){
+          try{
+            var r=await fetchChatOnce(base,payload);
+            if(r.ok)return {res:r,backend:base};
+            lastResponse=r;
+            
+            // Log error details for debugging
+            var errMsg='HTTP '+r.status;
+            if(r.status===502||r.status===503||r.status===504){
+              console.warn(`Backend error (${errMsg}) - attempt ${attempt+1}/${maxRetries}. Status: ${r.status}`);
+              attempt++;
+              if(attempt<maxRetries){
+                // Exponential backoff: 1s, 2s
+                await new Promise(function(res){setTimeout(res,(1000*Math.pow(2,attempt-1)))});
+              }
+              continue;
+            }
+            // For 4xx errors, don't retry
+            return {res:r,backend:base};
+          }catch(err){
+            lastError=err;
+            console.error(`Backend error (${base || 'Vercel rewrite'}): ${err.message}`);
+            if(attempt<maxRetries-1){
+              attempt++;
+              await new Promise(function(res){setTimeout(res,1500)});
+            }else{
+              break;
+            }
           }
         }
       }
+      
       if(lastError)throw lastError;
       if(lastResponse)return {res:lastResponse,backend:CHAT_BACKEND_CANDIDATES[0]};
       throw new Error('No backend candidates available');
@@ -491,7 +529,10 @@ ui.setHandleSend(async function(text){
     ui.removeLoader(lid);
     if(!res.ok)throw new Error('HTTP '+res.status);
     const data=await res.json();
-    var reply=data.reply||'\u2026';
+    if(!isValidChatPayload(data)){
+      throw new Error('Invalid chat response payload');
+    }
+    var reply=data.reply;
     var aiRow=ui.addMsg('ai',reply,false);
     try{await addDoc(mCol(ui.curSess.id),{role:'ai',text:reply,createdAt:serverTimestamp()});}catch{}
   }catch(err){
@@ -500,6 +541,8 @@ ui.setHandleSend(async function(text){
     if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0){
       var code=err.message.replace('HTTP ','');
       msg='\u26a0\ufe0f Server error ('+code+'). Please retry.';
+    }else if(err&&err.message==='Invalid chat response payload'){
+      msg='\u26a0\ufe0f Server returned an unexpected response. Please retry.';
     }
     ui.addMsg('ai',msg,false);
     console.error('Chat fetch failed',{
