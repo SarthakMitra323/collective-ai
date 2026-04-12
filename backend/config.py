@@ -31,6 +31,10 @@ chat_timeout_env = os.getenv("CHAT_TIMEOUT_SECONDS", "").strip()
 CHAT_TIMEOUT_SECONDS = float(chat_timeout_env) if chat_timeout_env else 80.0
 rag_timeout_env = os.getenv("RAG_TIMEOUT_SECONDS", "").strip()
 RAG_TIMEOUT_SECONDS = float(rag_timeout_env) if rag_timeout_env else 12.0
+max_active_sessions_env = os.getenv("MAX_ACTIVE_SESSIONS", "").strip()
+MAX_ACTIVE_SESSIONS = int(max_active_sessions_env) if max_active_sessions_env else 300
+max_history_turns_env = os.getenv("MAX_HISTORY_TURNS", "").strip()
+MAX_HISTORY_TURNS = int(max_history_turns_env) if max_history_turns_env else 20
 enable_rag_env = os.getenv("ENABLE_RAG", "").strip().lower()
 ENABLE_RAG = enable_rag_env != "false"
 max_output_tokens_env = os.getenv("MAX_OUTPUT_TOKENS", "").strip()

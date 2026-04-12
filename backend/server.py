@@ -1,7 +1,7 @@
 import os
 import asyncio
 import threading
-from fastapi import FastAPI, HTTPException #type:ignore
+from fastapi import FastAPI, HTTPException, Request #type:ignore
 from fastapi.middleware.cors import CORSMiddleware  #type:ignore
 from pydantic import BaseModel
 import uvicorn # type:ignore
@@ -21,6 +21,8 @@ try:
         CHAT_TIMEOUT_SECONDS,
         RAG_TIMEOUT_SECONDS,
         ENABLE_RAG,
+        MAX_ACTIVE_SESSIONS,
+        MAX_HISTORY_TURNS,
     )
 except ImportError:
     from LLM import CollectiveModel
@@ -35,6 +37,8 @@ except ImportError:
         CHAT_TIMEOUT_SECONDS,
         RAG_TIMEOUT_SECONDS,
         ENABLE_RAG,
+        MAX_ACTIVE_SESSIONS,
+        MAX_HISTORY_TURNS,
     )
 
 # Configure logging
@@ -322,12 +326,16 @@ async def search_endpoint(request: SearchRequest):
     }
 
 @app.post("/api/chat")
-async def chat_endpoint(request: ChatRequest):
+async def chat_endpoint(request: ChatRequest, http_request: Request):
     """Chat with Collective AI using RAG"""
     if not request.message:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
     
-    logger.debug(f"Chat request from session: {request.sessionId}")
+    client_request_id = http_request.headers.get("x-client-request-id", "")
+    if client_request_id:
+        logger.info(f"Chat request trace_id={client_request_id} session={request.sessionId}")
+    else:
+        logger.debug(f"Chat request from session: {request.sessionId}")
     
     try:
         # Wrap in timeout to prevent hanging requests
@@ -335,6 +343,10 @@ async def chat_endpoint(request: ChatRequest):
         engine = get_ai_engine()
         session_key = (request.sessionId or request.userId or "default").strip()
         if session_key not in _session_histories:
+            if len(_session_histories) >= MAX_ACTIVE_SESSIONS:
+                # Evict oldest session to avoid unbounded memory growth.
+                oldest_key = next(iter(_session_histories))
+                _session_histories.pop(oldest_key, None)
             _session_histories[session_key] = []
 
         chat_history = _session_histories[session_key]
@@ -377,8 +389,8 @@ async def chat_endpoint(request: ChatRequest):
                     if response_text:
                         chat_history.append({"role": "user", "content": request.message})
                         chat_history.append({"role": "assistant", "content": response_text})
-                        if len(chat_history) > 20:
-                            _session_histories[session_key] = chat_history[-20:]
+                        if len(chat_history) > MAX_HISTORY_TURNS:
+                            _session_histories[session_key] = chat_history[-MAX_HISTORY_TURNS:]
                         else:
                             _session_histories[session_key] = chat_history
                         logger.info(f"Streamed response generated: {len(response_text)} chars")
@@ -412,13 +424,14 @@ async def chat_endpoint(request: ChatRequest):
 
         chat_history.append({"role": "user", "content": request.message})
         chat_history.append({"role": "assistant", "content": response_text})
-        if len(chat_history) > 20:
-            _session_histories[session_key] = chat_history[-20:]
+        if len(chat_history) > MAX_HISTORY_TURNS:
+            _session_histories[session_key] = chat_history[-MAX_HISTORY_TURNS:]
         
         return {
             "reply": response_text,
             "context_used": len(context_docs),
-            "status": "success"
+            "status": "success",
+            "request_id": client_request_id,
         }
     except asyncio.TimeoutError:
         logger.error("Chat request exceeded timeout")
