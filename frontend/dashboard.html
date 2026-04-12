@@ -393,9 +393,25 @@ function makeTraceId(){
   return 'cai-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
 }
 
+function withTimeout(ms){
+  var ctrl = new AbortController();
+  var timeoutId = setTimeout(function(){ ctrl.abort(); }, ms);
+  return {
+    signal: ctrl.signal,
+    clear: function(){ clearTimeout(timeoutId); }
+  };
+}
+
 // ── 60-day session expiry (enforced here too, not just on app.html) ──
 const SESSION_KEY    = 'cai_login_ts';
 const MAX_SESSION_MS = 60 * 24 * 60 * 60 * 1000;
+function stampLoginSession() {
+  try {
+    localStorage.setItem(SESSION_KEY, String(Date.now()));
+  } catch (e) {
+    console.warn('Unable to persist login timestamp', e);
+  }
+}
 function isSessionExpired() {
   const ts = parseInt(localStorage.getItem(SESSION_KEY) || '0', 10);
   return !ts || (Date.now() - ts) > MAX_SESSION_MS;
@@ -403,6 +419,9 @@ function isSessionExpired() {
 
 onAuthStateChanged(auth,async user=>{
   if(!user){location.href='app.html';return;}
+  if(!localStorage.getItem(SESSION_KEY)){
+    stampLoginSession();
+  }
   // Enforce 60-day expiry
   if(isSessionExpired()){
     localStorage.removeItem(SESSION_KEY);
@@ -417,15 +436,6 @@ onAuthStateChanged(auth,async user=>{
 
   function isValidChatPayload(payload){
     return payload && typeof payload.reply === 'string' && payload.reply.trim().length > 0;
-  }
-
-  function withTimeout(ms){
-    var ctrl = new AbortController();
-    var t = setTimeout(function(){ ctrl.abort(); }, ms);
-    return {
-      signal: ctrl.signal,
-      clear: function(){ clearTimeout(t); }
-    };
   }
 
   // Test backend connectivity
@@ -510,7 +520,8 @@ ui.setHandleSend(async function(text){
             'X-Client-App': 'collective-ai-dashboard'
           },
           body:JSON.stringify(payload),
-          signal: timer.signal
+          signal: timer.signal,
+          keepalive: false
         });
       }finally{
         timer.clear();

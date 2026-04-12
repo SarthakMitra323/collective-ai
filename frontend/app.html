@@ -373,42 +373,6 @@ html, body {
 }
 .err.show { display: block; }
 
-/* ── RESET PANEL ── */
-#panel-reset { display: none; }
-#panel-reset.active { display: block; }
-.reset-success {
-  text-align: center;
-  padding: 12px 0 4px;
-}
-.reset-success svg {
-  display: block;
-  margin: 0 auto 14px;
-  color: var(--accent);
-}
-.reset-success h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-.reset-success p {
-  font-size: .82rem;
-  color: var(--sub);
-  line-height: 1.6;
-}
-.pw-strength {
-  height: 3px;
-  border-radius: 2px;
-  margin-top: 6px;
-  background: var(--border);
-  overflow: hidden;
-}
-.pw-strength-bar {
-  height: 100%;
-  border-radius: 2px;
-  transition: width .3s, background .3s;
-  width: 0%;
-}
-
 /* ── SWITCH LINK ── */
 .switch {
   text-align: center;
@@ -466,7 +430,7 @@ html, body {
   <div class="orb orb3"></div>
 </div>
 
-<a href="index.html" class="back-link">
+<a href="../index.html" class="back-link">
   <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"/></svg>
   Back to home
 </a>
@@ -490,8 +454,8 @@ html, body {
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab active" id="tab-in">Sign In</button>
-      <button class="tab"        id="tab-up">Create Account</button>
+      <button class="tab active" id="tab-in"  onclick="switchTab('in')">Sign In</button>
+      <button class="tab"        id="tab-up"  onclick="switchTab('up')">Create Account</button>
     </div>
 
     <!-- Error banner (shared) -->
@@ -525,13 +489,13 @@ html, body {
           <label for="in-pw">Password</label>
           <div class="pw-wrap">
             <input type="password" id="in-pw" placeholder="Your password" autocomplete="current-password">
-            <button class="pw-toggle" data-target="in-pw" tabindex="-1">
+            <button class="pw-toggle" onclick="togglePw('in-pw', this)" tabindex="-1">
               <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor" id="eye-in"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
             </button>
           </div>
         </div>
-        <div class="forgot"><a id="btn-forgot" style="cursor:pointer">Forgot password?</a></div>
-        <button class="btn-submit" id="btn-submit-in">
+        <div class="forgot"><a onclick="handleForgot()">Forgot password?</a></div>
+        <button class="btn-submit" id="btn-submit-in" onclick="handleEmailSignIn()">
           <span class="btn-text">Sign In</span>
           <div class="spin"></div>
         </button>
@@ -570,91 +534,18 @@ html, body {
           <label for="up-pw">Password</label>
           <div class="pw-wrap">
             <input type="password" id="up-pw" placeholder="At least 8 characters" autocomplete="new-password">
-            <button class="pw-toggle" data-target="up-pw" tabindex="-1">
+            <button class="pw-toggle" onclick="togglePw('up-pw', this)" tabindex="-1">
               <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
             </button>
           </div>
         </div>
-        <button class="btn-submit" id="btn-submit-up">
+        <button class="btn-submit" id="btn-submit-up" onclick="handleEmailSignUp()">
           <span class="btn-text">Create Account</span>
           <div class="spin"></div>
         </button>
       </div>
 
     </div><!-- /panel-up -->
-
-    <!-- ── EMAIL VERIFICATION PENDING PANEL ── -->
-    <div id="panel-verify" style="display:none">
-      <div style="text-align:center;padding:8px 0 4px">
-        <svg width="44" height="44" viewBox="0 0 256 256" fill="currentColor" style="color:var(--accent);display:block;margin:0 auto 14px"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM203.43,64,128,133.15,52.57,64ZM216,192H40V74.19l82.59,75.71a8,8,0,0,0,10.82,0L216,74.19V192Z"/></svg>
-        <h3 style="font-size:1rem;font-weight:700;margin-bottom:6px">Check your email</h3>
-        <p style="font-size:.82rem;color:var(--sub);line-height:1.65;margin-bottom:18px">
-          We sent a verification link to<br>
-          <strong id="verify-email-display" style="color:var(--text)"></strong><br><br>
-          Click the link in that email to activate your account. Check your spam folder if you don't see it.
-        </p>
-        <div class="err" id="verify-err" style="margin-bottom:12px"></div>
-        <button class="btn-submit" id="btn-resend-verify" style="margin-bottom:10px">
-          <span class="btn-text">Resend verification email</span>
-          <div class="spin"></div>
-        </button>
-        <div style="text-align:center;margin-top:8px">
-          <a id="btn-back-signin" style="font-size:.78rem;color:var(--accent);cursor:pointer">Back to sign in</a>
-        </div>
-      </div>
-    </div><!-- /panel-verify -->
-
-    <!-- ── RESET PASSWORD PANEL ── -->
-    <div id="panel-reset">
-      <!-- shown while verifying the oobCode -->
-      <div id="reset-verifying" style="text-align:center;padding:20px 0;color:var(--sub);font-size:.85rem;">
-        <div class="spin" style="display:block;margin:0 auto 12px;width:20px;height:20px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite"></div>
-        Verifying reset link…
-      </div>
-
-      <!-- shown when oobCode is valid -->
-      <div id="reset-form" style="display:none">
-        <div class="field">
-          <label for="new-pw">New password</label>
-          <div class="pw-wrap">
-            <input type="password" id="new-pw" placeholder="At least 8 characters" autocomplete="new-password">
-            <button class="pw-toggle" data-target="new-pw" tabindex="-1">
-              <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
-            </button>
-          </div>
-          <div class="pw-strength"><div class="pw-strength-bar" id="pw-strength-bar"></div></div>
-        </div>
-        <div class="field">
-          <label for="new-pw2">Confirm new password</label>
-          <div class="pw-wrap">
-            <input type="password" id="new-pw2" placeholder="Repeat your new password" autocomplete="new-password">
-            <button class="pw-toggle" data-target="new-pw2" tabindex="-1">
-              <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
-            </button>
-          </div>
-        </div>
-        <button class="btn-submit" id="btn-set-pw" style="margin-top:8px">
-          <span class="btn-text">Set New Password</span>
-          <div class="spin"></div>
-        </button>
-      </div>
-
-      <!-- shown after successful reset -->
-      <div id="reset-done" style="display:none" class="reset-success">
-        <svg width="40" height="40" viewBox="0 0 256 256" fill="currentColor"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg>
-        <h3>Password updated!</h3>
-        <p>Your password has been changed successfully.<br>Redirecting you to sign in…</p>
-      </div>
-
-      <!-- shown when the link is expired or invalid -->
-      <div id="reset-invalid" style="display:none;text-align:center;padding:8px 0">
-        <p style="font-size:.85rem;color:var(--sub);margin-bottom:16px">This reset link has expired or already been used. Please request a new one.</p>
-        <button class="btn-submit" id="btn-back-to-login" style="max-width:220px;margin:0 auto">
-          <span class="btn-text">Back to Sign In</span>
-          <div class="spin"></div>
-        </button>
-      </div>
-    </div><!-- /panel-reset -->
 
     <!-- Footer -->
     <div class="footer">
@@ -665,37 +556,50 @@ html, body {
 </div><!-- /page -->
 
 <script type="module">
-import { initializeApp }             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut,
+import { initializeApp }                          from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged,
          signInWithPopup, GoogleAuthProvider,
          signInWithEmailAndPassword,
          createUserWithEmailAndPassword,
          updateProfile,
-         sendEmailVerification,
-         sendPasswordResetEmail,
-         verifyPasswordResetCode,
-         confirmPasswordReset }      from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+         sendPasswordResetEmail }                 from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-// ── Firebase init ──
-const fbApp = initializeApp({
+const app  = initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
   projectId:         "collective-ai-auth",
   storageBucket:     "collective-ai-auth.firebasestorage.app",
   messagingSenderId: "851370153534",
-  appId:             "1:851370153534:web:484314623047fd110ca36f",
-  measurementId:     "G-H1362YWCJB"
+  appId:             "1:851370153534:web:484314623047fd110ca36f"
 });
-const auth  = getAuth(fbApp);
+const auth  = getAuth(app);
 const gProv = new GoogleAuthProvider();
+const SESSION_KEY = 'cai_login_ts';
+const MAX_SESSION_MS = 60 * 24 * 60 * 60 * 1000;
+
+function stampLoginSession() {
+  try {
+    localStorage.setItem(SESSION_KEY, String(Date.now()));
+  } catch (e) {
+    console.warn('Unable to persist login timestamp', e);
+  }
+}
+
+// Already signed in → redirect
+onAuthStateChanged(auth, user => {
+  if (user) {
+    stampLoginSession();
+    location.href = 'dashboard.html';
+  }
+});
 
 // ── Helpers ──
 function showErr(msg) {
   const el = document.getElementById('err');
-  el.style.background  = '';
+  el.style.background = '';
   el.style.borderColor = '';
-  el.style.color       = '';
-  el.textContent       = msg;
+  el.style.color = '';
+  el.textContent = msg;
   el.classList.add('show');
 }
 function clearErr() {
@@ -715,311 +619,116 @@ function fbErr(code) {
     'auth/email-already-in-use': 'An account with this email already exists.',
     'auth/weak-password':        'Password must be at least 6 characters.',
     'auth/popup-closed-by-user': 'Sign-in popup was closed.',
-    'auth/too-many-requests':    'Too many attempts. Please wait a few minutes.',
   };
   return map[code] || 'Something went wrong. Please try again.';
 }
 
-// ── 60-day session expiry ──
-// We store a loginTimestamp in localStorage on every fresh sign-in.
-// On each auth state check we verify it hasn't exceeded 60 days.
-const SESSION_KEY    = 'cai_login_ts';
-const MAX_SESSION_MS = 60 * 24 * 60 * 60 * 1000; // 60 days in ms
-
-function stampSession() {
-  localStorage.setItem(SESSION_KEY, Date.now().toString());
-}
-function isSessionExpired() {
-  const ts = parseInt(localStorage.getItem(SESSION_KEY) || '0', 10);
-  if (!ts) return true; // no stamp = treat as expired
-  return (Date.now() - ts) > MAX_SESSION_MS;
-}
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-}
-
-// ── Tab switch ── (moved here so it's always ready)
-function switchTab(tab) {
-  document.getElementById('tab-in').classList.toggle('active', tab === 'in');
-  document.getElementById('tab-up').classList.toggle('active', tab === 'up');
-  document.getElementById('panel-in').classList.toggle('active', tab === 'in');
-  document.getElementById('panel-up').classList.toggle('active', tab === 'up');
-  const err = document.getElementById('err');
-  err.classList.remove('show');
-  err.style.background = err.style.borderColor = err.style.color = '';
-  document.querySelector('.heading h1').textContent = tab === 'in' ? 'Welcome back'       : 'Create account';
-  document.querySelector('.heading p').textContent  = tab === 'in' ? 'Sign in to continue your conversations' : 'Join the collective and start contributing';
-}
-
-// ── Password toggle ──
-function togglePw(inputId, btn) {
-  const inp  = document.getElementById(inputId);
-  const show = inp.type === 'password';
-  inp.type   = show ? 'text' : 'password';
-  btn.innerHTML = show
-    ? `<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M53.92,34.62A8,8,0,1,0,42.08,45.38L61.32,66.55C37,80.58,19.14,102.74,11.56,128c9.23,34.49,40.6,60,76.44,60a85.63,85.63,0,0,0,41.65-10.76l19.38,21.52a8,8,0,1,0,11.84-10.76Zm59.55,109.42-52.8-58.67A69.36,69.36,0,0,1,88,128a72,72,0,0,1,1,12.14ZM128,192c-33.28,0-64.36-22.79-74.06-56a100.71,100.71,0,0,1,25.08-39.29l15,16.64A71.92,71.92,0,0,0,56,128a72.08,72.08,0,0,0,72,72,71.14,71.14,0,0,0,17.07-2.07l13.58,15.08A69.36,69.36,0,0,1,128,192Zm116.44-64c-9.23,34.49-40.6,60-76.44,60a85.88,85.88,0,0,1-19-2.12l-13.74-15.27A69.7,69.7,0,0,0,160,128a72.08,72.08,0,0,0-72-72,71.55,71.55,0,0,0-30.12,6.63L43.11,46.93a100.8,100.8,0,0,1,84.89-2.93C163.4,52,190.49,73.29,202.06,104H200a8,8,0,0,0,0,16h16a8.08,8.08,0,0,0,8-8A101,101,0,0,0,224,100h0A8,8,0,0,0,224,84H209.23C196.46,52.27,163.07,26.12,128,24a103.82,103.82,0,0,0-60.36,19L53.92,34.62A8,8,0,1,0,42.08,45.38L202.06,224a8,8,0,1,0,11.84-10.76L198.72,196.8A101.4,101.4,0,0,0,224,128a8,8,0,0,0-8-8h-.56Z"/></svg>`
-    : `<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>`;
-}
-
-// ── Password strength indicator ──
-document.getElementById('new-pw').addEventListener('input', function () {
-  const pw  = this.value;
-  const bar = document.getElementById('pw-strength-bar');
-  let score = 0;
-  if (pw.length >= 8)           score++;
-  if (pw.length >= 12)          score++;
-  if (/[A-Z]/.test(pw))         score++;
-  if (/[0-9]/.test(pw))         score++;
-  if (/[^A-Za-z0-9]/.test(pw))  score++;
-  const pcts   = ['0%','20%','40%','60%','80%','100%'];
-  const colors = ['','#ef4444','#f59e0b','#f59e0b','#22c55e','#22c55e'];
-  bar.style.width      = pcts[score];
-  bar.style.background = colors[score];
-});
-
-// ── URL parameter handling ──
-// Firebase reset links arrive as ?mode=resetPassword&oobCode=XXX
-// Must be handled BEFORE onAuthStateChanged can redirect the user.
-const urlParams = new URLSearchParams(window.location.search);
-const resetMode = urlParams.get('mode');
-const oobCode   = urlParams.get('oobCode');
-
-if (resetMode === 'resetPassword' && oobCode) {
-
-  // Hide normal sign-in UI, show reset panel
-  document.querySelector('.tabs').style.display     = 'none';
-  document.getElementById('panel-in').style.display = 'none';
-  document.getElementById('panel-up').style.display = 'none';
-  document.getElementById('panel-reset').classList.add('active');
-  document.querySelector('.heading h1').textContent = 'Set new password';
-  document.querySelector('.heading p').textContent  = 'Choose a strong password for your account.';
-
-  // Verify the oobCode — confirms it has not expired or already been used
-  verifyPasswordResetCode(auth, oobCode)
-    .then(() => {
-      document.getElementById('reset-verifying').style.display = 'none';
-      document.getElementById('reset-form').style.display      = 'block';
-
-      document.getElementById('btn-set-pw').addEventListener('click', async () => {
-        clearErr();
-        const pw1 = document.getElementById('new-pw').value;
-        const pw2 = document.getElementById('new-pw2').value;
-
-        if (pw1.length < 8) {
-          showErr('Password must be at least 8 characters.'); return;
-        }
-        if (pw1 !== pw2) {
-          showErr('Passwords do not match.'); return;
-        }
-
-        setLoading('btn-set-pw', true);
-        try {
-          // confirmPasswordReset consumes the oobCode — it becomes invalid after this
-          await confirmPasswordReset(auth, oobCode, pw1);
-
-          document.getElementById('reset-form').style.display = 'none';
-          document.getElementById('reset-done').style.display = 'block';
-
-          // Remove oobCode from URL so the browser back button cannot resubmit it
-          window.history.replaceState({}, document.title, window.location.pathname);
-
-          setTimeout(() => { location.href = 'app.html'; }, 2500);
-        } catch (e) {
-          setLoading('btn-set-pw', false);
-          const msgs = {
-            'auth/expired-action-code': 'This reset link has expired. Please request a new one.',
-            'auth/invalid-action-code': 'This reset link is invalid or already been used.',
-            'auth/user-disabled':       'This account has been disabled.',
-            'auth/user-not-found':      'No account found for this reset link.',
-            'auth/weak-password':       'Password is too weak — use at least 8 characters.',
-          };
-          showErr(msgs[e.code] || "Could not set password (" + e.code + ").");
-        }
-      });
-
-      document.getElementById('new-pw2').addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.getElementById('btn-set-pw').click();
-      });
-    })
-    .catch(() => {
-      // Code expired or already used
-      document.getElementById('reset-verifying').style.display = 'none';
-      document.getElementById('reset-invalid').style.display   = 'block';
-      document.getElementById('btn-back-to-login').addEventListener('click', () => {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        location.href = 'app.html';
-      });
-    });
-
-} else {
-  // Normal flow — redirect if already signed in and session is valid
-  onAuthStateChanged(auth, async user => {
-    if (!user) return;
-    if (isSessionExpired()) {
-      clearSession();
-      await signOut(auth);
-      showErr('Your session has expired after 60 days. Please sign in again.');
-      return;
-    }
-    location.href = 'dashboard.html';
-  });
-}
-
 // ── Google OAuth ──
-// Google accounts are always verified — stamp session and redirect directly
 async function oauthSignIn() {
   clearErr();
   try {
     await signInWithPopup(auth, gProv);
-    stampSession();
+    stampLoginSession();
     location.href = 'dashboard.html';
   } catch (e) {
     showErr(fbErr(e.code));
   }
 }
+document.getElementById('btn-google-in').onclick = oauthSignIn;
+document.getElementById('btn-google-up').onclick = oauthSignIn;
 
-// ── Show email verification pending screen ──
-function showVerifyScreen(user) {
-  document.querySelector('.tabs').style.display        = 'none';
-  document.getElementById('panel-in').style.display   = 'none';
-  document.getElementById('panel-up').style.display   = 'none';
-  document.getElementById('panel-verify').style.display = 'block';
-  document.querySelector('.heading h1').textContent   = 'Verify your email';
-  document.querySelector('.heading p').textContent    = 'One last step before you can access Collective AI.';
-  document.getElementById('verify-email-display').textContent = user.email || '';
-
-  // Resend button
-  let resendCooldown = false;
-  document.getElementById('btn-resend-verify').addEventListener('click', async () => {
-    if (resendCooldown) return;
-    setLoading('btn-resend-verify', true);
-    try {
-      await sendEmailVerification(user);
-      const ve = document.getElementById('verify-err');
-      ve.style.background  = 'rgba(99,102,241,.1)';
-      ve.style.borderColor = 'rgba(99,102,241,.25)';
-      ve.style.color       = '#a78bfa';
-      ve.textContent       = '✓ Verification email resent — check your inbox.';
-      ve.classList.add('show');
-      // Cooldown 60s to prevent spam
-      resendCooldown = true;
-      setTimeout(() => { resendCooldown = false; }, 60_000);
-    } catch (e) {
-      const ve = document.getElementById('verify-err');
-      ve.style.background = ve.style.borderColor = ve.style.color = '';
-      ve.textContent = e.code === 'auth/too-many-requests'
-        ? 'Too many requests. Please wait a minute before trying again.'
-        : 'Could not resend email. Please try again.';
-      ve.classList.add('show');
-    }
-    setLoading('btn-resend-verify', false);
-  });
-
-  // Back to sign in
-  document.getElementById('btn-back-signin').addEventListener('click', async () => {
-    await signOut(auth);
-    location.reload();
-  });
-}
-
-// ── Email sign in ──
-async function emailSignIn() {
+// ── Email Sign In ──
+window.handleEmailSignIn = async function() {
   clearErr();
   const email = document.getElementById('in-email').value.trim();
   const pw    = document.getElementById('in-pw').value;
   if (!email || !pw) { showErr('Please enter your email and password.'); return; }
   setLoading('btn-submit-in', true);
   try {
-    const cred = await signInWithEmailAndPassword(auth, email, pw);
-    if (!cred.user.emailVerified) {
-      // Account exists but email not yet verified — show resend screen
-      setLoading('btn-submit-in', false);
-      showVerifyScreen(cred.user);
-      return;
-    }
-    stampSession();
+    await signInWithEmailAndPassword(auth, email, pw);
+    stampLoginSession();
     location.href = 'dashboard.html';
   } catch (e) {
     showErr(fbErr(e.code));
     setLoading('btn-submit-in', false);
   }
-}
+};
 
-// ── Email sign up ──
-async function emailSignUp() {
+// ── Email Sign Up ──
+window.handleEmailSignUp = async function() {
   clearErr();
   const name  = document.getElementById('up-name').value.trim();
   const email = document.getElementById('up-email').value.trim();
   const pw    = document.getElementById('up-pw').value;
-  if (!name)        { showErr('Please enter your name.');                 return; }
-  if (!email)       { showErr('Please enter your email.');                return; }
+  if (!name)        { showErr('Please enter your name.'); return; }
+  if (!email)       { showErr('Please enter your email.'); return; }
   if (pw.length < 6){ showErr('Password must be at least 6 characters.'); return; }
   setLoading('btn-submit-up', true);
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pw);
     await updateProfile(cred.user, { displayName: name });
-    await sendEmailVerification(cred.user);
-    setLoading('btn-submit-up', false);
-    showVerifyScreen(cred.user);
+    stampLoginSession();
+    location.href = 'dashboard.html';
   } catch (e) {
     showErr(fbErr(e.code));
     setLoading('btn-submit-up', false);
   }
-}
+};
 
 // ── Forgot password ──
-async function forgotPassword() {
+window.handleForgot = async function() {
   clearErr();
   const email = document.getElementById('in-email').value.trim();
-  if (!email) { showErr('Enter your email address in the field above first.'); return; }
-  const link = document.getElementById('btn-forgot');
-  const orig = link.textContent;
-  link.textContent = 'Sending…';
-  link.style.pointerEvents = 'none';
+  if (!email) { showErr('Enter your email address above first.'); return; }
   try {
     await sendPasswordResetEmail(auth, email);
     const el = document.getElementById('err');
-    el.style.background  = 'rgba(99,102,241,.1)';
-    el.style.borderColor = 'rgba(99,102,241,.25)';
-    el.style.color       = '#a78bfa';
-    el.textContent       = '✓ Reset link sent — check your inbox (and spam folder).';
+    el.style.background   = 'rgba(99,102,241,.1)';
+    el.style.borderColor  = 'rgba(99,102,241,.25)';
+    el.style.color        = '#a78bfa';
+    el.textContent        = 'Reset email sent — check your inbox.';
     el.classList.add('show');
   } catch (e) {
-    console.error('[forgotPassword]', e.code, e.message);
-    const msgs = {
-      'auth/user-not-found':    'No account exists with that email address.',
-      'auth/invalid-email':     "That doesn't look like a valid email address.",
-      'auth/missing-email':     'Please enter your email address first.',
-      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes.',
-    };
-    showErr(msgs[e.code] || `Reset failed (${e.code}).`);
-  } finally {
-    link.textContent = orig;
-    link.style.pointerEvents = '';
+    showErr(fbErr(e.code));
   }
-}
+};
 
-// ── Wire up all events here — no inline onclick needed ──
-document.getElementById('tab-in').addEventListener('click',       () => switchTab('in'));
-document.getElementById('tab-up').addEventListener('click',       () => switchTab('up'));
-document.getElementById('btn-google-in').addEventListener('click', oauthSignIn);
-document.getElementById('btn-google-up').addEventListener('click', oauthSignIn);
-document.getElementById('btn-submit-in').addEventListener('click', emailSignIn);
-document.getElementById('btn-submit-up').addEventListener('click', emailSignUp);
-document.getElementById('btn-forgot').addEventListener('click',    forgotPassword);
-
+// ── Enter key submits ──
 document.getElementById('in-pw').addEventListener('keydown', e => {
-  if (e.key === 'Enter') emailSignIn();
+  if (e.key === 'Enter') window.handleEmailSignIn();
 });
 document.getElementById('up-pw').addEventListener('keydown', e => {
-  if (e.key === 'Enter') emailSignUp();
+  if (e.key === 'Enter') window.handleEmailSignUp();
 });
+</script>
 
-// Password toggle buttons — wire by data-target attribute
-document.querySelectorAll('.pw-toggle[data-target]').forEach(btn => {
-  btn.addEventListener('click', () => togglePw(btn.dataset.target, btn));
-});
+<script>
+// ── Tab switch ──
+window.switchTab = function(tab) {
+  document.getElementById('tab-in').classList.toggle('active', tab === 'in');
+  document.getElementById('tab-up').classList.toggle('active', tab === 'up');
+  document.getElementById('panel-in').classList.toggle('active', tab === 'in');
+  document.getElementById('panel-up').classList.toggle('active', tab === 'up');
+  document.getElementById('err').classList.remove('show');
+  // Reset error styling on tab switch
+  const err = document.getElementById('err');
+  err.style.background = '';
+  err.style.borderColor = '';
+  err.style.color = '';
+  // Update heading
+  document.querySelector('.heading h1').textContent = tab === 'in' ? 'Welcome back' : 'Create account';
+  document.querySelector('.heading p').textContent  = tab === 'in' ? 'Sign in to continue your conversations' : 'Join the collective and start contributing';
+};
+
+// ── Password toggle ──
+window.togglePw = function(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.innerHTML = show
+    ? '<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M53.92,34.62A8,8,0,1,0,42.08,45.38L61.32,66.55C37,80.58,19.14,102.74,11.56,128c9.23,34.49,40.6,60,76.44,60a85.63,85.63,0,0,0,41.65-10.76l19.38,21.52a8,8,0,1,0,11.84-10.76Zm59.55,109.42-52.8-58.67A69.36,69.36,0,0,1,88,128a72,72,0,0,1,1,12.14ZM128,192c-33.28,0-64.36-22.79-74.06-56a100.71,100.71,0,0,1,25.08-39.29l15,16.64A71.92,71.92,0,0,0,56,128a72.08,72.08,0,0,0,72,72,71.14,71.14,0,0,0,17.07-2.07l13.58,15.08A69.36,69.36,0,0,1,128,192Zm116.44-64c-9.23,34.49-40.6,60-76.44,60a85.88,85.88,0,0,1-19-2.12l-13.74-15.27A69.7,69.7,0,0,0,160,128a72.08,72.08,0,0,0-72-72,71.55,71.55,0,0,0-30.12,6.63L43.11,46.93a100.8,100.8,0,0,1,84.89-2.93C163.4,52,190.49,73.29,202.06,104H200a8,8,0,0,0,0,16h16a8.08,8.08,0,0,0,8-8A101,101,0,0,0,224,100h0A8,8,0,0,0,224,84H209.23C196.46,52.27,163.07,26.12,128,24a103.82,103.82,0,0,0-60.36,19L53.92,34.62A8,8,0,1,0,42.08,45.38L202.06,224a8,8,0,1,0,11.84-10.76L198.72,196.8A101.4,101.4,0,0,0,224,128a8,8,0,0,0-8-8h-.56Z"/></svg>'
+    : '<svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231.05,128C223.84,141.46,192.43,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>';
+};
 </script>
 </body>
 </html>
-
