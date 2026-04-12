@@ -30,9 +30,13 @@ services:
       - key: WARMUP_LLM_TIMEOUT_SECONDS
         value: 45
       - key: CHAT_TIMEOUT_SECONDS
-        value: 120
+        value: 90
       - key: RAG_TIMEOUT_SECONDS
         value: 15
+      - key: MAX_ACTIVE_SESSIONS
+        value: 250
+      - key: MAX_HISTORY_TURNS
+        value: 20
       - key: REQUEST_TIMEOUT
         value: 120
       - key: PINECONE_API_KEY
