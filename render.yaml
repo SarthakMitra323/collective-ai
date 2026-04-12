@@ -12,7 +12,7 @@ services:
       - key: PYTHONUNBUFFERED
         value: true
       - key: ALLOWED_ORIGIN
-        value: https://collective-ai.vercel.app
+        value: *
       - key: ALLOWED_ORIGIN_REGEX
         value: ^https://([a-z0-9-]+\.)*vercel\.app$
       - key: GROQ_MODEL
