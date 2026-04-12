@@ -363,7 +363,7 @@ const PROD_BACKEND = 'https://collective-ai-backend.onrender.com';
 const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND : '';
 const CHAT_BACKEND_CANDIDATES = location.hostname === 'localhost'
   ? [LOCAL_BACKEND]
-  : ['', PROD_BACKEND]; // Prefer same-origin Vercel rewrite, then direct Render
+  : ['', PROD_BACKEND];
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
@@ -496,6 +496,7 @@ ui.setHandleSend(async function(text){
   const lid=ui.addLoader();
   try{
     var usedBackend=BACKEND;
+    var usedBackendLabel=BACKEND||'Vercel proxy';
     var traceId=makeTraceId();
     async function fetchChatOnce(baseUrl,payload,trace){
       var timer=withTimeout(25000);
@@ -526,6 +527,7 @@ ui.setHandleSend(async function(text){
         var base=CHAT_BACKEND_CANDIDATES[i];
         usedBackend=base;
         var label=base||'Vercel proxy';
+        usedBackendLabel=label;
         var attempt=0;
         
         while(attempt<maxRetries){
@@ -545,6 +547,11 @@ ui.setHandleSend(async function(text){
                 await new Promise(function(res){setTimeout(res,(1000*Math.pow(2,attempt-1)))});
               }
               continue;
+            }
+            // If same-origin proxy isn't configured on this host, try direct backend next.
+            if((r.status===404||r.status===405)&&base===''&&i<CHAT_BACKEND_CANDIDATES.length-1){
+              console.warn('Same-origin /api route not available on this host. Falling back to direct backend.');
+              break;
             }
             // For 4xx errors, don't retry
             return {res:r,backend:base,traceId:traceId};
@@ -599,9 +606,11 @@ ui.setHandleSend(async function(text){
       errorName: err&&err.name,
       errorMessage: err&&err.message,
       backend: usedBackend,
+      backendLabel: usedBackendLabel,
       backendCandidates: CHAT_BACKEND_CANDIDATES,
       online: navigator.onLine,
-      traceId: traceId
+      traceId: traceId,
+      stack: err&&err.stack
     });
   }
   ui.busy=false;ui.renderSessions();
