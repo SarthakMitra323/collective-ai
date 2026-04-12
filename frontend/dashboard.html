@@ -87,6 +87,10 @@ a{text-decoration:none;color:inherit}
 .hbg{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--sub);flex-shrink:0;transition:color .15s,background .15s}
 .hbg:hover{color:var(--text);background:var(--hover)}
 .h-title{flex:1;font-size:.85rem;font-weight:600;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conn-badge{font-size:.66rem;padding:4px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted);background:rgba(255,255,255,.03);white-space:nowrap;max-width:42vw;overflow:hidden;text-overflow:ellipsis}
+.conn-badge.ok{color:#22c55e;border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.12)}
+.conn-badge.warn{color:#f59e0b;border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.12)}
+.conn-badge.down{color:#ef4444;border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.12)}
 .h-btn{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:color .15s,background .15s}
 .h-btn:hover{color:var(--text);background:var(--hover)}
 .chat-area{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
@@ -177,6 +181,7 @@ a{text-decoration:none;color:inherit}
   <div class="header">
     <button class="hbg" id="btn-hbg"><svg width="17" height="17" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></svg></button>
     <span class="h-title" id="h-title">New conversation</span>
+    <span class="conn-badge warn" id="conn-badge">Backend: checking</span>
     <div style="display:flex;gap:4px"><button class="h-btn" id="btn-del"><svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192Z"/></svg></button></div>
   </div>
   <div class="chat-area" id="chat-area">
@@ -358,7 +363,7 @@ const PROD_BACKEND = 'https://collective-ai-backend.onrender.com';
 const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND : '';
 const CHAT_BACKEND_CANDIDATES = location.hostname === 'localhost'
   ? [LOCAL_BACKEND]
-  : [PROD_BACKEND]; // Only direct backend, no fallback
+  : ['', PROD_BACKEND]; // Prefer same-origin Vercel rewrite, then direct Render
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
@@ -370,9 +375,23 @@ const app=initializeApp({
 });
 const auth=getAuth(app),db=getFirestore(app);
 const ui=window._ui;
+const connBadge=document.getElementById('conn-badge');
 let me=null;
 const sCol=()=>collection(db,'users',me.uid,'sessions');
 const mCol=sid=>collection(db,'users',me.uid,'sessions',sid,'messages');
+
+function setConnBadge(state,text){
+  if(!connBadge)return;
+  connBadge.classList.remove('ok','warn','down');
+  if(state==='ok')connBadge.classList.add('ok');
+  else if(state==='down')connBadge.classList.add('down');
+  else connBadge.classList.add('warn');
+  connBadge.textContent=text;
+}
+
+function makeTraceId(){
+  return 'cai-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+}
 
 // ── 60-day session expiry (enforced here too, not just on app.html) ──
 const SESSION_KEY    = 'cai_login_ts';
@@ -400,13 +419,24 @@ onAuthStateChanged(auth,async user=>{
     return payload && typeof payload.reply === 'string' && payload.reply.trim().length > 0;
   }
 
+  function withTimeout(ms){
+    var ctrl = new AbortController();
+    var t = setTimeout(function(){ ctrl.abort(); }, ms);
+    return {
+      signal: ctrl.signal,
+      clear: function(){ clearTimeout(t); }
+    };
+  }
+
   // Test backend connectivity
   (async function testBackendConnectivity(){
+    setConnBadge('warn','Backend: checking');
     for(var i=0;i<CHAT_BACKEND_CANDIDATES.length;i++){
       var base=CHAT_BACKEND_CANDIDATES[i];
+      var label=base||'Vercel proxy';
       try{
         var r=await fetch((base||'')+'/api/test',{method:'GET',mode:'cors',timeout:5000});
-        console.log('Backend test '+(base||'Vercel rewrite')+': HTTP '+r.status);
+        console.log('Backend test '+label+': HTTP '+r.status);
         if(r.ok){
           var testJson=null;
           try{
@@ -416,13 +446,14 @@ onAuthStateChanged(auth,async user=>{
             console.warn('⚠️ Backend returned unexpected /api/test payload',testJson);
             continue;
           }
-          console.log('✅ Backend '+(base||'Vercel rewrite')+' is reachable');
+          setConnBadge('ok','Backend: '+label+' OK');
+          console.log('✅ Backend '+label+' is reachable');
           break;
         }else{
           console.warn('⚠️ Backend returned HTTP '+r.status);
         }
       }catch(e){
-        console.log('❌ Backend '+(base||'Vercel rewrite')+' unreachable: '+e.message);
+        console.log('❌ Backend '+label+' unreachable: '+e.message);
       }
     }
   })();
@@ -465,13 +496,24 @@ ui.setHandleSend(async function(text){
   const lid=ui.addLoader();
   try{
     var usedBackend=BACKEND;
-    async function fetchChatOnce(baseUrl,payload){
-      return await fetch(baseUrl+'/api/chat',{
-        method:'POST',
-        mode:'cors',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload)
-      });
+    var traceId=makeTraceId();
+    async function fetchChatOnce(baseUrl,payload,trace){
+      var timer=withTimeout(25000);
+      try{
+        return await fetch(baseUrl+'/api/chat',{
+          method:'POST',
+          mode:'cors',
+          headers:{
+            'Content-Type':'application/json',
+            'X-Client-Request-Id': trace,
+            'X-Client-App': 'collective-ai-dashboard'
+          },
+          body:JSON.stringify(payload),
+          signal: timer.signal
+        });
+      }finally{
+        timer.clear();
+      }
     }
 
     async function fetchChatWithFallback(payload){
@@ -482,12 +524,15 @@ ui.setHandleSend(async function(text){
       
       for(var i=0;i<CHAT_BACKEND_CANDIDATES.length;i++){
         var base=CHAT_BACKEND_CANDIDATES[i];
+        usedBackend=base;
+        var label=base||'Vercel proxy';
         var attempt=0;
         
         while(attempt<maxRetries){
           try{
-            var r=await fetchChatOnce(base,payload);
-            if(r.ok)return {res:r,backend:base};
+            setConnBadge('warn','Backend: sending via '+label);
+            var r=await fetchChatOnce(base,payload,traceId);
+            if(r.ok)return {res:r,backend:base,traceId:traceId};
             lastResponse=r;
             
             // Log error details for debugging
@@ -502,10 +547,10 @@ ui.setHandleSend(async function(text){
               continue;
             }
             // For 4xx errors, don't retry
-            return {res:r,backend:base};
+            return {res:r,backend:base,traceId:traceId};
           }catch(err){
             lastError=err;
-            console.error(`Backend error (${base || 'Vercel rewrite'}): ${err.message}`);
+            console.error(`Backend error (${base || 'Vercel rewrite'}): ${err && err.message ? err.message : err}`);
             if(attempt<maxRetries-1){
               attempt++;
               await new Promise(function(res){setTimeout(res,1500)});
@@ -517,7 +562,7 @@ ui.setHandleSend(async function(text){
       }
       
       if(lastError)throw lastError;
-      if(lastResponse)return {res:lastResponse,backend:CHAT_BACKEND_CANDIDATES[0]};
+      if(lastResponse)return {res:lastResponse,backend:CHAT_BACKEND_CANDIDATES[0],traceId:traceId};
       throw new Error('No backend candidates available');
     }
 
@@ -525,6 +570,7 @@ ui.setHandleSend(async function(text){
     const chatResult=await fetchChatWithFallback(payload);
     const res=chatResult.res;
     usedBackend=chatResult.backend;
+    traceId=chatResult.traceId;
 
     ui.removeLoader(lid);
     if(!res.ok)throw new Error('HTTP '+res.status);
@@ -533,10 +579,14 @@ ui.setHandleSend(async function(text){
       throw new Error('Invalid chat response payload');
     }
     var reply=data.reply;
+    var backendAck=data.request_id||'n/a';
+    setConnBadge('ok','Backend: '+(usedBackend||'Vercel proxy')+' OK');
+    console.log('Chat trace',{clientTraceId:traceId,backendRequestId:backendAck,backendUsed:usedBackend||'Vercel proxy'});
     var aiRow=ui.addMsg('ai',reply,false);
     try{await addDoc(mCol(ui.curSess.id),{role:'ai',text:reply,createdAt:serverTimestamp()});}catch{}
   }catch(err){
     ui.removeLoader(lid);
+    setConnBadge('down','Backend: unavailable');
     var msg='\u26a0\ufe0f Network request failed. Please try again.';
     if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0){
       var code=err.message.replace('HTTP ','');
@@ -550,7 +600,8 @@ ui.setHandleSend(async function(text){
       errorMessage: err&&err.message,
       backend: usedBackend,
       backendCandidates: CHAT_BACKEND_CANDIDATES,
-      online: navigator.onLine
+      online: navigator.onLine,
+      traceId: traceId
     });
   }
   ui.busy=false;ui.renderSessions();
