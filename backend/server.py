@@ -332,10 +332,20 @@ async def chat_endpoint(request: ChatRequest, http_request: Request):
         raise HTTPException(status_code=400, detail="Message cannot be empty")
     
     client_request_id = http_request.headers.get("x-client-request-id", "")
+    request_origin = http_request.headers.get("origin", "")
     if client_request_id:
-        logger.info(f"Chat request trace_id={client_request_id} session={request.sessionId}")
+        logger.info(
+            "Chat request trace_id=%s session=%s origin=%s",
+            client_request_id,
+            request.sessionId,
+            request_origin or "(none)",
+        )
     else:
-        logger.debug(f"Chat request from session: {request.sessionId}")
+        logger.info(
+            "Chat request session=%s origin=%s",
+            request.sessionId,
+            request_origin or "(none)",
+        )
     
     try:
         # Wrap in timeout to prevent hanging requests
