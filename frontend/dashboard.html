@@ -358,11 +358,11 @@ const{initializeApp}=await import('https://www.gstatic.com/firebasejs/11.6.1/fir
 const{getAuth,onAuthStateChanged,signOut}=await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
 const{getFirestore,collection,doc,addDoc,getDocs,deleteDoc,serverTimestamp,query,orderBy,onSnapshot}=await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
 
-const LOCAL_BACKEND = 'http://localhost:8000';
+const LOCAL_BACKEND_PRIMARY = 'http://localhost:3000';
 const PROD_BACKEND = 'https://collective-ai-backend.onrender.com';
-const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND : '';
+const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND_PRIMARY : '';
 const CHAT_BACKEND_CANDIDATES = location.hostname === 'localhost'
-  ? [LOCAL_BACKEND]
+  ? [LOCAL_BACKEND_PRIMARY]
   : ['', PROD_BACKEND];
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
@@ -395,11 +395,22 @@ function makeTraceId(){
 
 function withTimeout(ms){
   var ctrl = new AbortController();
-  var timeoutId = setTimeout(function(){ ctrl.abort(); }, ms);
+  var timeoutId = setTimeout(function(){
+    try { ctrl.abort('request-timeout'); }
+    catch(_e){ ctrl.abort(); }
+  }, ms);
   return {
     signal: ctrl.signal,
     clear: function(){ clearTimeout(timeoutId); }
   };
+}
+
+function isValidTestPayload(payload){
+  return payload && payload.status === 'backend_alive';
+}
+
+function isValidChatPayload(payload){
+  return payload && typeof payload.reply === 'string' && payload.reply.trim().length > 0;
 }
 
 // ── 60-day session expiry (enforced here too, not just on app.html) ──
@@ -430,14 +441,6 @@ onAuthStateChanged(auth,async user=>{
     return;
   }
   
-  function isValidTestPayload(payload){
-    return payload && payload.status === 'backend_alive';
-  }
-
-  function isValidChatPayload(payload){
-    return payload && typeof payload.reply === 'string' && payload.reply.trim().length > 0;
-  }
-
   // Test backend connectivity
   (async function testBackendConnectivity(){
     setConnBadge('warn','Backend: checking');
@@ -509,7 +512,8 @@ ui.setHandleSend(async function(text){
     var usedBackendLabel=BACKEND||'Vercel proxy';
     var traceId=makeTraceId();
     async function fetchChatOnce(baseUrl,payload,trace){
-      var timer=withTimeout(25000);
+      var timeoutMs = (baseUrl && baseUrl.indexOf('localhost') !== -1) ? 120000 : 45000;
+      var timer=withTimeout(timeoutMs);
       try{
         return await fetch(baseUrl+'/api/chat',{
           method:'POST',
@@ -523,6 +527,11 @@ ui.setHandleSend(async function(text){
           signal: timer.signal,
           keepalive: false
         });
+      }catch(err){
+        if(err && (err.name === 'AbortError' || (err.message && err.message.toLowerCase().indexOf('aborted') !== -1))){
+          throw new Error('Request timed out after '+Math.round(timeoutMs/1000)+'s');
+        }
+        throw err;
       }finally{
         timer.clear();
       }
@@ -609,6 +618,8 @@ ui.setHandleSend(async function(text){
     if(err&&typeof err.message==='string'&&err.message.indexOf('HTTP ')===0){
       var code=err.message.replace('HTTP ','');
       msg='\u26a0\ufe0f Server error ('+code+'). Please retry.';
+    }else if(err&&typeof err.message==='string'&&err.message.indexOf('Request timed out after ')===0){
+      msg='\u26a0\ufe0f Request timed out. Backend is slow right now, please retry.';
     }else if(err&&err.message==='Invalid chat response payload'){
       msg='\u26a0\ufe0f Server returned an unexpected response. Please retry.';
     }
