@@ -1,6 +1,7 @@
 import os
 import asyncio
 import threading
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request #type:ignore
 from fastapi.middleware.cors import CORSMiddleware  #type:ignore
 from pydantic import BaseModel
@@ -48,10 +49,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Lazy-load model and knowledge base
+logger.info("Initializing Collective AI Backend...")
+ai_engine = None
+_knowledge_base = None
+_session_histories: dict[str, list[dict[str, str]]] = {}
+_startup_ready = threading.Event()
+_startup_error: str | None = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _startup_ready.set()
+    app.state.startup_task = asyncio.create_task(asyncio.to_thread(_startup_initialize_blocking))
+    yield
+
+
 app = FastAPI(
     title="Collective AI Backend",
     description="RAG-powered AI with Groq API",
-    docs_url="/docs" if DEBUG_MODE else None
+    docs_url="/docs" if DEBUG_MODE else None,
+    lifespan=lifespan,
 )
 
 # CORS with origin normalization (avoids mismatch from trailing slashes/spaces)
@@ -79,15 +97,6 @@ app.add_middleware(
 async def options_handler(path: str):
     return {"status": "ok"}
 
-# Lazy-load model and knowledge base
-logger.info("Initializing Collective AI Backend...")
-ai_engine = None
-_knowledge_base = None
-_session_histories: dict[str, list[dict[str, str]]] = {}
-_startup_ready = threading.Event()
-_startup_error: str | None = None
-
-
 def _startup_initialize_blocking():
     global _startup_error
     try:
@@ -113,12 +122,6 @@ def _startup_initialize_blocking():
     finally:
         # Keep the service routable even if warmup or external dependencies fail.
         _startup_ready.set()
-
-
-@app.on_event("startup")
-async def warmup_on_startup():
-    _startup_ready.set()
-    app.state.startup_task = asyncio.create_task(asyncio.to_thread(_startup_initialize_blocking))
 
 
 @app.api_route("/api/ready", methods=["GET", "HEAD"])
