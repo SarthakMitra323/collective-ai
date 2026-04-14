@@ -1,216 +1,124 @@
 <div align="center">
 
-<img src="frontend/images/Logo-favicon.png" alt="Collective AI Logo" width="72" height="72" />
+<img src="frontend/images/Logo.png" alt="Collective AI Logo" width="120" />
 
 # Collective AI
 
-**A community-powered AI assistant that grows smarter with every contribution.**
+Community-powered AI chat platform that improves through shared knowledge.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776ab?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
-[![Deploy on Render](https://img.shields.io/badge/Backend-Render-46e3b7?logo=render&logoColor=white)](https://render.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-111827.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Data-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Render](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=111827)](https://render.com/)
+[![Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com/)
 
-[Live Demo](https://collective-ai.vercel.app) · [Report a Bug](https://github.com/SarthakMitra323/collective-ai/issues) · [Request a Feature](https://github.com/SarthakMitra323/collective-ai/issues)
+[Live App](https://collective-ai.vercel.app)
 
 </div>
 
 ---
 
-## Overview
+## What is Collective AI?
 
-Collective AI is an open-source, community-driven AI chat platform. Unlike static AI assistants, Collective AI improves over time as users contribute domain knowledge through a structured contribution system. Every piece of submitted knowledge is stored in a vector database and retrieved at query time via **Retrieval-Augmented Generation (RAG)**, grounding the AI's responses in real community expertise.
+Collective AI is a full-stack web application where users can chat with an AI assistant and contribute knowledge that improves future responses.
 
-The platform is designed to be self-hostable and easy to extend. If you want a private AI assistant that your team or community can collectively train — this is for you.
+It combines:
 
-```
-User asks a question
-        │
-        ▼
-  FastAPI backend
-        │
-        ├──▶ Retrieve relevant chunks from ChromaDB (RAG)
-        │
-        ├──▶ Construct prompt with context
-        │
-        └──▶ LLM generates grounded response
-                    │
-                    ▼
-          Answer sent back to user
-          + saved to Firestore
-```
+- a clean chat interface
+- Firebase authentication and user session storage
+- a FastAPI backend
+- retrieval-augmented generation (RAG) with vector search
+- production deployment via Vercel + Render
 
 ---
 
-## Features
+## Key Features
 
-- **🧠 RAG pipeline** — community knowledge is embedded with `sentence-transformers` and retrieved via ChromaDB at query time
-- **💬 Chat interface** — Claude-inspired dark UI with conversation history, session switching, and search
-- **✍️ Knowledge contributions** — users can submit, tag, and rate knowledge entries; top contributors appear on a leaderboard
-- **🔐 Firebase Auth** — Google sign-in; per-user Firestore data isolation enforced via security rules
-- **📱 Responsive** — works on mobile and desktop; collapsible sidebar, touch-friendly inputs
-- **⚡ Fast** — instant session switching, real-time Firestore listeners, smooth animations
-- **🔓 Open source** — MIT licensed; self-hostable backend on any Python host
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| **Frontend** | Vanilla HTML/CSS/JS · Sora + JetBrains Mono fonts |
-| **Backend** | Python · FastAPI · Uvicorn |
-| **AI / NLP** | sentence-transformers (embeddings) · TinyLlama (optional fine-tuning) |
-| **Vector DB** | ChromaDB (persistent, local) |
-| **Auth** | Firebase Authentication (Google OAuth) |
-| **Database** | Cloud Firestore (sessions, messages, contributions) |
-| **Hosting** | Vercel (frontend) · Render (backend) |
+- Chat interface with persistent user sessions
+- Contribution workflow for adding community knowledge
+- RAG-backed responses grounded in stored context
+- Firebase Auth integration (email/password + Google)
+- Public pages: terms, privacy, leaderboard, contribution
+- Health and diagnostics endpoints for production reliability
 
 ---
 
-## Getting Started
+## Architecture
 
-### Prerequisites
+- Frontend: static HTML/CSS/JavaScript pages in `frontend/`
+- Backend: FastAPI app in `backend/server.py`
+- LLM Layer: Groq-backed inference via `backend/LLM.py`
+- Retrieval Layer: embeddings + Pinecone-backed vector search via `backend/rag.py`
+- Auth/Data: Firebase Authentication + Firestore
 
-- Python 3.10+
-- Node.js (optional, for local frontend serving)
-- A [Firebase project](https://console.firebase.google.com/) with **Authentication** and **Firestore** enabled
+---
 
-### 1. Clone the repository
+## Quick Start (Local)
 
-```bash
-git clone https://github.com/SarthakMitra323/collective-ai.git
-cd collective-ai
-```
-
-### 2. Install Python dependencies
+### 1. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-> **Note:** `torch` and `transformers` can be large. If you don't need fine-tuning, you can skip those and remove `LLM.py` imports from `server.py`.
+### 2. Configure backend environment
 
-### 3. Configure Firebase
+Create `backend/.env` (you can use `backend/.env.example` as a template).
 
-1. Go to [Firebase Console](https://console.firebase.google.com/) → your project → Project Settings → Web app
-2. Copy your Firebase config object
-3. In `dashboard.html`, `app.html`, and `contribution.html`, replace the placeholder config:
+Minimum required variables:
 
-```js
-const firebaseConfig = {
-  apiKey: "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
-  authDomain: "collective-ai-auth.firebaseapp.com",
-  projectId: "collective-ai-auth",
-  storageBucket: "collective-ai-auth.firebasestorage.app",
-  messagingSenderId: "851370153534",
-  appId: "1:851370153534:web:484314623047fd110ca36f",
-  measurementId: "G-H1362YWCJB"
-};
+```env
+GROQ_API_KEY=your_groq_key
+PINECONE_API_KEY=your_pinecone_key
 ```
 
-### 4. Set Firestore Security Rules
+Optional development-friendly defaults:
 
-In the Firebase Console → Firestore Database → **Rules**, paste the following:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // Private user data — owner only
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      match /sessions/{sessionId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-        match /messages/{messageId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
-        }
-      }
-      match /contributions/{contributionId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-
-    // ★ NEW — public leaderboard summaries (no content, just metadata)
-    match /contributions/{contributionId} {
-      allow read:  if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
+```env
+PORT=3000
+ALLOWED_ORIGIN=http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000,http://127.0.0.1:3000
 ```
 
-### 5. Run the backend
+### 3. Start backend
 
 ```bash
-python server.py
+python -m backend.server
 ```
 
-The API will be available at `http://localhost:8000`. Check `http://localhost:8000/docs` for the auto-generated Swagger UI.
+Backend runs on `http://localhost:3000` by default.
 
-### 6. Serve the frontend
+### 4. Serve frontend
 
-Open `dashboard.html` directly in a browser, or use a simple local server:
+From project root:
 
 ```bash
-# Python
-python -m http.server 3000
-
-# Node.js
-npx serve .
+python -m http.server 8000
 ```
+
+Then open:
+
+`http://localhost:8000/frontend/app.html`
 
 ---
 
-## API Reference
+## API Endpoints
 
-### `POST /api/chat`
+- `GET /api/test` - lightweight connectivity check
+- `GET /api/ready` - readiness endpoint
+- `GET /api/health` - detailed service health
+- `POST /api/chat` - chat completion endpoint
+- `POST /api/contribute` - contribute knowledge
+- `POST /api/search` - retrieve relevant context
 
-Send a message and receive an AI-generated response grounded in community knowledge.
+Sample chat request:
 
-**Request body:**
 ```json
 {
-  "message": "How does RAG work?",
-  "sessionId": "abc123",
-  "userId": "uid_xyz"
-}
-```
-
-**Response:**
-```json
-{
-  "reply": "RAG (Retrieval-Augmented Generation) works by..."
-}
-```
-
----
-
-### `POST /api/contribute`
-
-Submit a new knowledge entry to the vector database.
-
-**Request body:**
-```json
-{
-  "content": "Your knowledge text here",
-  "category": "technology",
-  "userId": "uid_xyz"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Contribution added successfully"
+  "message": "Explain how Collective AI learns",
+  "sessionId": "session_123",
+  "userId": "user_123",
+  "stream": false
 }
 ```
 
@@ -218,61 +126,56 @@ Submit a new knowledge entry to the vector database.
 
 ## Deployment
 
-### Backend → Render
+### Frontend (Vercel)
 
-1. Push your code to GitHub
-2. Create a new **Web Service** on [Render](https://render.com/)
-3. Set the build command: `pip install -r requirements.txt`
-4. Set the start command: `python server.py`
-5. Copy your Render URL (e.g. `https://collective-ai-backend.onrender.com`)
-6. In `dashboard.html` and `contribution.html`, update the `BACKEND` constant:
+- Static frontend is deployed on Vercel.
+- API calls can use Vercel rewrites to proxy `/api/*` to Render backend.
 
-```js
-const BACKEND = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000'
-  : 'https://collective-ai-backend.onrender.com'; // ← your Render URL
+### Backend (Render)
+
+- Backend is deployed as a Python web service.
+- Uses `gunicorn` + `uvicorn.workers.UvicornWorker`.
+- Health check path: `/api/ready`.
+
+---
+
+## Security and Reliability Notes
+
+- CORS configuration supports production and localhost development origins.
+- Request timeouts and retry behavior are implemented on both frontend and backend.
+- Session expiry guard is enforced in the dashboard.
+- Chat requests include trace IDs for debugging end-to-end request flow.
+
+---
+
+## Project Structure
+
+```text
+frontend/            # UI pages and client logic
+backend/             # FastAPI server, LLM and RAG logic
+render.yaml          # Render service config
+vercel.json          # Vercel rewrites/headers
+requirements.txt     # Python dependencies
+CHANGELOG.md         # Public change history
 ```
 
-### Frontend → Vercel
+---
 
-1. Connect your GitHub repo to [Vercel](https://vercel.com/)
-2. Set the output directory to the repo root (no build step needed)
-3. Deploy — Vercel will serve your HTML files statically
+## Contributing
+
+Contributions are welcome.
+
+- Open an issue for bugs or feature requests
+- Submit a PR with clear scope and test notes
 
 ---
 
-## How the RAG Pipeline Works
+## License
 
-When a user submits a knowledge contribution, the text is:
-
-1. **Chunked** into passages
-2. **Embedded** using `sentence-transformers/all-MiniLM-L6-v2`
-3. **Stored** in a persistent ChromaDB collection
-
-When a user asks a question:
-
-1. The question is **embedded** with the same model
-2. The **top-k most similar** knowledge chunks are retrieved from ChromaDB
-3. The chunks are **injected into the prompt** as context
-4. The LLM generates a response **grounded in the retrieved knowledge**
-
-This means the AI's answers improve as more knowledge is contributed — without retraining.
+This project is licensed under the MIT License. See `LICENSE` for details.
 
 ---
 
-## Optional: Fine-tuning with TinyLlama
-
-`LLM.py` contains an optional fine-tuning pipeline using TinyLlama and Hugging Face `transformers`. This is experimental and intended for GPU environments — running it on Render's free tier (CPU) will be very slow.
-
-To fine-tune:
-
-```bash
-python LLM.py
-```
-
-> For most use cases, **RAG alone is sufficient** and much faster. Fine-tuning is only recommended if you have a large corpus of domain-specific Q&A pairs and GPU access.
-
----
 
 ## Contributing
 
@@ -309,8 +212,6 @@ Please follow [Conventional Commits](https://www.conventionalcommits.org/) for c
 | 📋 Planned | Docker support |
 | 📋 Planned | Rate limiting |
 
-Known issues - [Backend Deployment Issue](#%EF%B8%8F-deployment-issue-notice)
-
 ---
 
 ## License
@@ -328,12 +229,6 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 - [Sora](https://fonts.google.com/specimen/Sora) & [JetBrains Mono](https://www.jetbrains.com/lp/mono/) for the typefaces
 
 ---
-
-## ⚠️ **Deployment Issue Notice**
-
-We have encountered a critical issue with deploying our backend services. As a result, the AI functionality is currently unavailable.
-
-We are actively working to resolve this problem and would greatly appreciate your patience and cooperation during this time.
 
 <div align="center">
 
