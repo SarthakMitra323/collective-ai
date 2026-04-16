@@ -12,15 +12,15 @@ if not GROQ_API_KEY:
     import warnings
     warnings.warn("GROQ_API_KEY not set. AI features will be unavailable.")
 
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
-GROQ_FALLBACK_MODEL = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.3-70b-versatile").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+GROQ_FALLBACK_MODEL = os.getenv("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant").strip()
 REMOTE_LLM = True
 
 max_response_length_env = os.getenv("MAX_RESPONSE_LENGTH", "").strip()
 MAX_RESPONSE_LENGTH = int(max_response_length_env) if max_response_length_env else None
 
 request_timeout_env = os.getenv("REQUEST_TIMEOUT", "").strip()
-REQUEST_TIMEOUT = float(request_timeout_env) if request_timeout_env else None
+REQUEST_TIMEOUT = float(request_timeout_env) if request_timeout_env else 45.0
 warmup_llm_on_startup_env = os.getenv("WARMUP_LLM_ON_STARTUP", "").strip().lower()
 WARMUP_LLM_ON_STARTUP = warmup_llm_on_startup_env != "false"
 warmup_llm_timeout_env = os.getenv("WARMUP_LLM_TIMEOUT_SECONDS", "").strip()

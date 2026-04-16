@@ -8,9 +8,9 @@ import re
 SYSTEM_PROMPT = "You are Collective AI. Answer clearly and concisely using only the necessary context."
 
 try:
-    from .config import GROQ_API_KEY, GROQ_MODEL, GROQ_FALLBACK_MODEL, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
+    from .config import GROQ_API_KEY, GROQ_MODEL, GROQ_FALLBACK_MODEL, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS
 except ImportError:
-    from config import GROQ_API_KEY, GROQ_MODEL, GROQ_FALLBACK_MODEL, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
+    from config import GROQ_API_KEY, GROQ_MODEL, GROQ_FALLBACK_MODEL, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS
 
 if SUPPRESS_HF_LOGS:
     logging.getLogger("groq").setLevel(logging.CRITICAL)
@@ -166,26 +166,12 @@ class CollectiveModel:
         })
         return messages
 
-    @staticmethod
-    def _estimate_input_tokens(text: str) -> int:
-        """Roughly estimate tokens so we can keep requests inside the model window."""
-        return max(1, len(text) // 4)
 
-    def _generation_budget(self, messages: List[Dict[str, str]]) -> Optional[int]:
-        """Pick output budget; unlimited when MAX_OUTPUT_TOKENS is not configured."""
-        if MAX_OUTPUT_TOKENS is None:
-            return None
-        approx_text = "\n".join(msg.get("content", "") for msg in messages)
-        prompt_tokens = self._estimate_input_tokens(approx_text)
-        reserved_for_prompt = 32
-        remaining = 8192 - prompt_tokens - reserved_for_prompt
-        return max(64, min(MAX_OUTPUT_TOKENS, remaining))
 
     def _call_chat_completion(
         self,
         client,
         messages: List[Dict[str, str]],
-        max_output_tokens: Optional[int],
         model: Optional[str] = None,
     ) -> str:
         chat_kwargs: Dict[str, object] = {
@@ -193,8 +179,6 @@ class CollectiveModel:
             "messages": messages,
             "temperature": 0.3,
         }
-        if max_output_tokens is not None:
-            chat_kwargs["max_tokens"] = max_output_tokens
         out = client.chat.completions.create(**chat_kwargs)
         choices = getattr(out, "choices", None) or []
         if not choices:
@@ -209,7 +193,6 @@ class CollectiveModel:
         self,
         client,
         messages: List[Dict[str, str]],
-        max_output_tokens: Optional[int],
         model: Optional[str] = None,
     ):
         chat_kwargs: Dict[str, object] = {
@@ -218,8 +201,6 @@ class CollectiveModel:
             "temperature": 0.3,
             "stream": True,
         }
-        if max_output_tokens is not None:
-            chat_kwargs["max_tokens"] = max_output_tokens
 
         stream = client.chat.completions.create(**chat_kwargs)
         for chunk in stream:
@@ -234,7 +215,6 @@ class CollectiveModel:
     def _call_text_generation(self, messages: List[Dict[str, str]]) -> str:
         """Call Groq chat completion with model fallback."""
         client = self._init_client()
-        max_output_tokens = self._generation_budget(messages)
         candidate_models = [self.primary_model]
         if self.fallback_model and self.fallback_model != self.primary_model:
             candidate_models.append(self.fallback_model)
@@ -246,7 +226,6 @@ class CollectiveModel:
                     self._call_chat_completion,
                     client,
                     messages,
-                    max_output_tokens,
                     candidate,
                 )
             except Exception as e:
@@ -283,7 +262,6 @@ class CollectiveModel:
         context_docs = context_docs or []
         messages = self._build_messages(user_input, context_docs, chat_history)
         client = self._init_client()
-        max_output_tokens = self._generation_budget(messages)
 
         candidate_models = [self.primary_model]
         if self.fallback_model and self.fallback_model != self.primary_model:
@@ -292,7 +270,7 @@ class CollectiveModel:
         last_error: Optional[Exception] = None
         for candidate in candidate_models:
             try:
-                for token in self._stream_chat_completion(client, messages, max_output_tokens, candidate):
+                for token in self._stream_chat_completion(client, messages, candidate):
                     yield token
                 return
             except Exception as e:

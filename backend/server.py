@@ -153,6 +153,11 @@ def get_knowledge_base():
         _knowledge_base = KnowledgeBase()
     return _knowledge_base
 
+
+def _search_knowledge_base(query_text: str, n_results: int):
+    """Run KB initialization + search off the event loop thread."""
+    return get_knowledge_base().search(query_text, n_results)
+
 # --- Schemas ---
 class ChatRequest(BaseModel):
     message: str
@@ -369,7 +374,7 @@ async def chat_endpoint(request: ChatRequest, http_request: Request):
             try:
                 context_docs = await asyncio.wait_for(
                     asyncio.to_thread(
-                        get_knowledge_base().search,
+                        _search_knowledge_base,
                         request.message,
                         2,
                     ),
