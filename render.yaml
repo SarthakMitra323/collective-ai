@@ -16,9 +16,9 @@ services:
       - key: ALLOWED_ORIGIN_REGEX
         value: ^https://([a-z0-9-]+\.)*vercel\.app$
       - key: GROQ_MODEL
-        value: llama-3.1-8b-instant
-      - key: GROQ_FALLBACK_MODEL
         value: llama-3.3-70b-versatile
+      - key: GROQ_FALLBACK_MODEL
+        value: llama-3.1-8b-instant
       - key: GROQ_API_KEY
         sync: false
       - key: WARMUP_LLM_ON_STARTUP
@@ -30,7 +30,7 @@ services:
       - key: WARMUP_LLM_TIMEOUT_SECONDS
         value: 45
       - key: CHAT_TIMEOUT_SECONDS
-        value: 90
+        value: 75
       - key: RAG_TIMEOUT_SECONDS
         value: 15
       - key: MAX_ACTIVE_SESSIONS
@@ -38,7 +38,7 @@ services:
       - key: MAX_HISTORY_TURNS
         value: 20
       - key: REQUEST_TIMEOUT
-        value: 120
+        value: 60
       - key: PINECONE_API_KEY
         sync: false
       - key: PINECONE_INDEX
