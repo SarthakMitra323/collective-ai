@@ -360,10 +360,10 @@ const{getFirestore,collection,doc,addDoc,getDocs,deleteDoc,serverTimestamp,query
 
 const LOCAL_BACKEND_PRIMARY = 'http://localhost:3000';
 const PROD_BACKEND = 'https://collective-ai-backend.onrender.com';
-const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND_PRIMARY : '';
+const BACKEND = location.hostname === 'localhost' ? LOCAL_BACKEND_PRIMARY : PROD_BACKEND;
 const CHAT_BACKEND_CANDIDATES = location.hostname === 'localhost'
   ? [LOCAL_BACKEND_PRIMARY]
-  : ['', PROD_BACKEND];
+  : [PROD_BACKEND, ''];
 const app=initializeApp({
   apiKey:            "AIzaSyDSo6zYkmgSndJG9Oq9rMBQFIAIDl51vyU",
   authDomain:        "collective-ai-auth.firebaseapp.com",
@@ -512,7 +512,7 @@ ui.setHandleSend(async function(text){
     var usedBackendLabel=BACKEND||'Vercel proxy';
     var traceId=makeTraceId();
     async function fetchChatOnce(baseUrl,payload,trace){
-      var timeoutMs = (baseUrl && baseUrl.indexOf('localhost') !== -1) ? 120000 : 45000;
+      var timeoutMs = (baseUrl && baseUrl.indexOf('localhost') !== -1) ? 120000 : 120000;
       var timer=withTimeout(timeoutMs);
       try{
         return await fetch(baseUrl+'/api/chat',{
@@ -593,7 +593,27 @@ ui.setHandleSend(async function(text){
       throw new Error('No backend candidates available');
     }
 
-    const payload={message:text,sessionId:ui.curSess.id,userId:me.uid,stream:false};
+    async function streamReplyFromResponse(res, aiRow){
+      if(!res.body){
+        throw new Error('Streaming not supported in this browser');
+      }
+      var reader=res.body.getReader();
+      var decoder=new TextDecoder();
+      var reply='';
+      while(true){
+        var part=await reader.read();
+        if(part.done)break;
+        var chunk=decoder.decode(part.value,{stream:true});
+        if(chunk){
+          reply+=chunk;
+          ui.setMsgText(aiRow,reply);
+        }
+      }
+      reply+=decoder.decode();
+      return reply.trim();
+    }
+
+    const payload={message:text,sessionId:ui.curSess.id,userId:me.uid,stream:true};
     const chatResult=await fetchChatWithFallback(payload);
     const res=chatResult.res;
     usedBackend=chatResult.backend;
@@ -601,15 +621,29 @@ ui.setHandleSend(async function(text){
 
     ui.removeLoader(lid);
     if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    if(!isValidChatPayload(data)){
-      throw new Error('Invalid chat response payload');
+
+    var backendAck='stream';
+    var reply='';
+    var contentType=(res.headers.get('content-type')||'').toLowerCase();
+    var aiRow=ui.addMsg('ai','',false);
+
+    if(contentType.indexOf('application/json')!==-1){
+      const data=await res.json();
+      if(!isValidChatPayload(data)){
+        throw new Error('Invalid chat response payload');
+      }
+      reply=data.reply;
+      backendAck=data.request_id||'n/a';
+      ui.setMsgText(aiRow,reply);
+    }else{
+      reply=await streamReplyFromResponse(res,aiRow);
+      if(!reply){
+        throw new Error('Invalid chat response payload');
+      }
     }
-    var reply=data.reply;
-    var backendAck=data.request_id||'n/a';
+
     setConnBadge('ok','Backend: '+(usedBackend||'Vercel proxy')+' OK');
     console.log('Chat trace',{clientTraceId:traceId,backendRequestId:backendAck,backendUsed:usedBackend||'Vercel proxy'});
-    var aiRow=ui.addMsg('ai',reply,false);
     try{await addDoc(mCol(ui.curSess.id),{role:'ai',text:reply,createdAt:serverTimestamp()});}catch{}
   }catch(err){
     ui.removeLoader(lid);
