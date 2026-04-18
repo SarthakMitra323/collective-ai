@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use Collective AI in academic work, please cite it as below."
+type: software
+title: "Collective AI"
+abstract: "A community-powered AI assistant that grows smarter with every contribution."
+license: MIT
+repository-code: "https://github.com/SarthakMitra323/collective-ai"
+url: "https://collective-ai.vercel.app"
+authors:
+  - family-names: "Mitra"
+    given-names: "Sarthak"
+    alias: "SarthakMitra323"
+    website: "https://about-sarthak.vercel.app/"
+keywords:
+  - "ai"
+  - "assistant"
+  - "chat"
+  - "fastapi"
+  - "rag"
+  - "retrieval-augmented-generation"
+  - "firebase"
+  - "pinecone"
+  - "vercel"
+  - "render"
+preferred-citation:
+  type: software
+  title: "Collective AI"
+  authors:
+    - family-names: "Mitra"
+      given-names: "Sarthak"
+  year: 2026
+  url: "https://github.com/SarthakMitra323/collective-ai"
+  license: MIT
