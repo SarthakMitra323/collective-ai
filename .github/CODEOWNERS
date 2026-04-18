@@ -1,0 +1,4 @@
+# CODEOWNERS rules: require review from the Project Owner for sensitive areas.
+
+# Backend code requires owner review
+/backend/ @SarthakMitra323
