@@ -223,7 +223,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ## Acknowledgements
 
 - [FastAPI](https://fastapi.tiangolo.com/) for the clean Python API framework
-- [ChromaDB](https://www.trychroma.com/) for the easy-to-use vector store
+- [Pinecone](https://www.pinecone.io/) for the easy-to-use vector store
 - [sentence-transformers](https://www.sbert.net/) for embedding models
 - [Firebase](https://firebase.google.com/) for auth and real-time database
 - [Sora](https://fonts.google.com/specimen/Sora) & [JetBrains Mono](https://www.jetbrains.com/lp/mono/) for the typefaces
