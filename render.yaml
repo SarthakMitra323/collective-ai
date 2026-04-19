@@ -12,9 +12,9 @@ services:
       - key: PYTHONUNBUFFERED
         value: true
       - key: ALLOWED_ORIGIN
-        value: *
+        value: https://collective-ai.vercel.app
       - key: ALLOWED_ORIGIN_REGEX
-        value: ^https://([a-z0-9-]+\.)*vercel\.app$
+        value: ^https://([a-z0-9-]+\\.)*vercel\\.app$
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
       - key: GROQ_FALLBACK_MODEL
