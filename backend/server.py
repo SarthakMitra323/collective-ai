@@ -1,13 +1,18 @@
 import os
 import asyncio
 import threading
+import hashlib
+import re
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request #type:ignore
 from fastapi.middleware.cors import CORSMiddleware  #type:ignore
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uvicorn # type:ignore
 import logging
 from fastapi.responses import StreamingResponse  # type:ignore
+from fastapi.responses import JSONResponse  # type:ignore
+from starlette.middleware.trustedhost import TrustedHostMiddleware  # type:ignore
 
 try:
     from .LLM import CollectiveModel
@@ -24,6 +29,12 @@ try:
         ENABLE_RAG,
         MAX_ACTIVE_SESSIONS,
         MAX_HISTORY_TURNS,
+        MAX_MESSAGE_CHARS,
+        MAX_SESSION_ID_CHARS,
+        RATE_LIMIT_WINDOW_SECONDS,
+        RATE_LIMIT_MAX_REQUESTS,
+        ENFORCE_BROWSER_ORIGIN_CHECK,
+        TRUSTED_HOSTS,
     )
 except ImportError:
     from LLM import CollectiveModel
@@ -40,6 +51,12 @@ except ImportError:
         ENABLE_RAG,
         MAX_ACTIVE_SESSIONS,
         MAX_HISTORY_TURNS,
+        MAX_MESSAGE_CHARS,
+        MAX_SESSION_ID_CHARS,
+        RATE_LIMIT_WINDOW_SECONDS,
+        RATE_LIMIT_MAX_REQUESTS,
+        ENFORCE_BROWSER_ORIGIN_CHECK,
+        TRUSTED_HOSTS,
     )
 
 # Configure logging
@@ -56,13 +73,22 @@ _knowledge_base = None
 _session_histories: dict[str, list[dict[str, str]]] = {}
 _startup_ready = threading.Event()
 _startup_error: str | None = None
+_rate_limit_hits: dict[str, list[float]] = {}
+_rate_limit_lock = threading.Lock()
+_SESSION_KEY_PATTERN = re.compile(rf"^[A-Za-z0-9_.:-]{{1,{MAX_SESSION_ID_CHARS}}}$")
+_MAX_TRACKED_RATE_LIMIT_CLIENTS = 5000
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _startup_ready.set()
+    _startup_ready.clear()
     app.state.startup_task = asyncio.create_task(asyncio.to_thread(_startup_initialize_blocking))
-    yield
+    try:
+        yield
+    finally:
+        startup_task = getattr(app.state, "startup_task", None)
+        if startup_task and not startup_task.done():
+            startup_task.cancel()
 
 
 app = FastAPI(
@@ -71,6 +97,9 @@ app = FastAPI(
     docs_url="/docs" if DEBUG_MODE else None,
     lifespan=lifespan,
 )
+
+if TRUSTED_HOSTS:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=TRUSTED_HOSTS)
 
 # CORS with origin normalization (avoids mismatch from trailing slashes/spaces)
 allowed_origins = [origin.strip().rstrip("/") for origin in ALLOWED_ORIGIN if origin.strip()]
@@ -92,6 +121,88 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+try:
+    _allowed_origin_regex_pattern = re.compile(ALLOWED_ORIGIN_REGEX) if ALLOWED_ORIGIN_REGEX else None
+except re.error:
+    logger.warning("Invalid ALLOWED_ORIGIN_REGEX. Regex-based origin checks disabled.")
+    _allowed_origin_regex_pattern = None
+
+
+def _origin_allowed(origin: str) -> bool:
+    normalized_origin = origin.strip().rstrip("/")
+    if not normalized_origin:
+        return False
+    if allow_all_origins:
+        return True
+    if normalized_origin in allowed_origins:
+        return True
+    if _allowed_origin_regex_pattern and _allowed_origin_regex_pattern.match(normalized_origin):
+        return True
+    return False
+
+
+def _allow_chat_request(client_ip: str) -> bool:
+    now = time.time()
+    cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+    with _rate_limit_lock:
+        if len(_rate_limit_hits) > _MAX_TRACKED_RATE_LIMIT_CLIENTS:
+            stale_clients = [
+                key for key, values in _rate_limit_hits.items()
+                if not values or values[-1] < cutoff
+            ]
+            for key in stale_clients[:1500]:
+                _rate_limit_hits.pop(key, None)
+
+        hits = _rate_limit_hits.setdefault(client_ip, [])
+        fresh_hits = [ts for ts in hits if ts >= cutoff]
+        if len(fresh_hits) >= RATE_LIMIT_MAX_REQUESTS:
+            _rate_limit_hits[client_ip] = fresh_hits
+            return False
+        fresh_hits.append(now)
+        _rate_limit_hits[client_ip] = fresh_hits
+    return True
+
+
+def _safe_session_key(raw_key: str | None) -> str:
+    candidate = (raw_key or "").strip()
+    if candidate and len(candidate) <= MAX_SESSION_ID_CHARS and _SESSION_KEY_PATTERN.match(candidate):
+        return candidate
+
+    if candidate:
+        compact = re.sub(r"[^A-Za-z0-9_.:-]+", "-", candidate)[:MAX_SESSION_ID_CHARS]
+        if compact and _SESSION_KEY_PATTERN.match(compact):
+            return compact
+        digest = hashlib.sha256(candidate.encode("utf-8", errors="ignore")).hexdigest()[:24]
+        return f"sess-{digest}"
+
+    return "default"
+
+
+@app.middleware("http")
+async def hardening_middleware(request: Request, call_next):
+    path = request.url.path
+
+    if path.startswith("/api/") and request.method != "OPTIONS":
+        if ENFORCE_BROWSER_ORIGIN_CHECK:
+            request_origin = request.headers.get("origin", "").strip()
+            if request_origin and not _origin_allowed(request_origin):
+                return JSONResponse(status_code=403, content={"detail": "Origin not allowed"})
+
+        if path == "/api/chat":
+            client_ip = request.client.host if request.client and request.client.host else "unknown"
+            if not _allow_chat_request(client_ip):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too many chat requests. Please slow down."},
+                )
+
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
+
 # Explicit OPTIONS handler for CORS preflight
 @app.api_route("/api/{path:path}", methods=["OPTIONS"])
 async def options_handler(path: str):
@@ -105,7 +216,24 @@ def _startup_initialize_blocking():
         # Eagerly initialize Groq client so first web request is not cold.
         engine._init_client()
         if WARMUP_LLM_ON_STARTUP:
-            engine.warmup()
+            ex = threading.Event()
+            warmup_error: list[Exception] = []
+
+            def _warmup_call():
+                try:
+                    engine.warmup()
+                except Exception as warm_e:
+                    warmup_error.append(warm_e)
+                finally:
+                    ex.set()
+
+            th = threading.Thread(target=_warmup_call, daemon=True)
+            th.start()
+            finished = ex.wait(timeout=WARMUP_LLM_TIMEOUT_SECONDS)
+            if not finished:
+                raise TimeoutError(f"LLM warmup timed out after {WARMUP_LLM_TIMEOUT_SECONDS:.0f}s")
+            if warmup_error:
+                raise warmup_error[0]
         if ENABLE_RAG and WARMUP_RAG_ON_STARTUP:
             logger.info("Warming RAG embedder and Pinecone connection...")
             kb = get_knowledge_base()
@@ -160,24 +288,24 @@ def _search_knowledge_base(query_text: str, n_results: int):
 
 # --- Schemas ---
 class ChatRequest(BaseModel):
-    message: str
-    sessionId: str | None = None
-    userId: str | None = None
+    message: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
+    sessionId: str | None = Field(default=None, max_length=MAX_SESSION_ID_CHARS)
+    userId: str | None = Field(default=None, max_length=MAX_SESSION_ID_CHARS)
     stream: bool = False
 
 class ContributionRequest(BaseModel):
-    content: str | None = None  # From HTML form
-    text: str | None = None      # Alternative field name
-    title: str | None = None     # Optional: contribution title
-    userId: str | None = None
+    content: str | None = Field(default=None, max_length=50000)  # From HTML form
+    text: str | None = Field(default=None, max_length=50000)      # Alternative field name
+    title: str | None = Field(default=None, max_length=160)     # Optional: contribution title
+    userId: str | None = Field(default=None, max_length=MAX_SESSION_ID_CHARS)
     
     def get_text(self):
         """Get text from either 'content' or 'text' field"""
         return (self.content or self.text or "").strip()
 
 class SearchRequest(BaseModel):
-    query: str
-    n_results: int = 3
+    query: str = Field(min_length=1, max_length=1000)
+    n_results: int = Field(default=3, ge=1, le=8)
 
 # --- Endpoints ---
 
@@ -336,7 +464,7 @@ async def search_endpoint(request: SearchRequest):
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest, http_request: Request):
     """Chat with Collective AI using RAG"""
-    if not request.message:
+    if not request.message or not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
     
     client_request_id = http_request.headers.get("x-client-request-id", "")
@@ -359,7 +487,7 @@ async def chat_endpoint(request: ChatRequest, http_request: Request):
         # Wrap in timeout to prevent hanging requests
         start_time = asyncio.get_running_loop().time()
         engine = get_ai_engine()
-        session_key = (request.sessionId or request.userId or "default").strip()
+        session_key = _safe_session_key(request.sessionId or request.userId)
         if session_key not in _session_histories:
             if len(_session_histories) >= MAX_ACTIVE_SESSIONS:
                 # Evict oldest session to avoid unbounded memory growth.
@@ -407,10 +535,7 @@ async def chat_endpoint(request: ChatRequest, http_request: Request):
                     if response_text:
                         chat_history.append({"role": "user", "content": request.message})
                         chat_history.append({"role": "assistant", "content": response_text})
-                        if len(chat_history) > MAX_HISTORY_TURNS:
-                            _session_histories[session_key] = chat_history[-MAX_HISTORY_TURNS:]
-                        else:
-                            _session_histories[session_key] = chat_history
+                        _session_histories[session_key] = chat_history[-MAX_HISTORY_TURNS:]
                         logger.info(f"Streamed response generated: {len(response_text)} chars")
 
             return StreamingResponse(stream_reply(), media_type="text/plain; charset=utf-8")
@@ -442,8 +567,7 @@ async def chat_endpoint(request: ChatRequest, http_request: Request):
 
         chat_history.append({"role": "user", "content": request.message})
         chat_history.append({"role": "assistant", "content": response_text})
-        if len(chat_history) > MAX_HISTORY_TURNS:
-            _session_histories[session_key] = chat_history[-MAX_HISTORY_TURNS:]
+        _session_histories[session_key] = chat_history[-MAX_HISTORY_TURNS:]
         
         return {
             "reply": response_text,

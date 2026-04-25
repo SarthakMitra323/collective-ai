@@ -40,6 +40,24 @@ ENABLE_RAG = enable_rag_env != "false"
 max_output_tokens_env = os.getenv("MAX_OUTPUT_TOKENS", "").strip()
 MAX_OUTPUT_TOKENS = int(max_output_tokens_env) if max_output_tokens_env else None
 SUPPRESS_HF_LOGS = True
+max_message_chars_env = os.getenv("MAX_MESSAGE_CHARS", "").strip()
+MAX_MESSAGE_CHARS = int(max_message_chars_env) if max_message_chars_env else 8000
+max_session_id_chars_env = os.getenv("MAX_SESSION_ID_CHARS", "").strip()
+MAX_SESSION_ID_CHARS = int(max_session_id_chars_env) if max_session_id_chars_env else 120
+rate_limit_window_env = os.getenv("RATE_LIMIT_WINDOW_SECONDS", "").strip()
+RATE_LIMIT_WINDOW_SECONDS = float(rate_limit_window_env) if rate_limit_window_env else 60.0
+rate_limit_max_env = os.getenv("RATE_LIMIT_MAX_REQUESTS", "").strip()
+RATE_LIMIT_MAX_REQUESTS = int(rate_limit_max_env) if rate_limit_max_env else 45
+enforce_origin_check_env = os.getenv("ENFORCE_BROWSER_ORIGIN_CHECK", "").strip().lower()
+ENFORCE_BROWSER_ORIGIN_CHECK = enforce_origin_check_env != "false"
+TRUSTED_HOSTS = [
+    host.strip()
+    for host in os.getenv(
+        "TRUSTED_HOSTS",
+        "collective-ai-backend.onrender.com,localhost,127.0.0.1",
+    ).split(",")
+    if host.strip()
+]
 
 # ============= RAG Configuration =============
 DB_PATH = os.getenv("DB_PATH", "./collective_memory.db")
