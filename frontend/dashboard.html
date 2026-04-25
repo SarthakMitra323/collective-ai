@@ -6,6 +6,8 @@
 <title>Dashboard | Collective AI</title>
 <link rel="icon" href="images/Logo-favicon.png" type="image/png">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" defer></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -242,6 +244,15 @@ var sidebar=S('sidebar'),overlay=S('overlay'),btnHbg=S('btn-hbg'),btnClose=S('bt
     ucard=S('ucard'),umenu=S('umenu'),uav=S('uav'),uname=S('uname'),uemail=S('uemail'),
     scrBtn=S('scr-btn'),toastsEl=S('toasts'),btnHome=S('btn-home'),btnOut=S('btn-signout');
 
+var SESSION_DRAFTS_KEY='cai_chat_drafts_v1';
+var ACTIVE_SESSION_KEY='cai_active_session_id';
+var MAX_CLIENT_MESSAGE_CHARS=8000;
+var drafts={};
+try{
+  var savedDrafts=sessionStorage.getItem(SESSION_DRAFTS_KEY);
+  drafts=savedDrafts?JSON.parse(savedDrafts):{};
+}catch(_e){drafts={};}
+
 /* State */
 var curSess=null, sessions=[], initials='?', busy=false;
 
@@ -265,13 +276,37 @@ function updateSend(){sendBtn.classList.toggle('lit',msgInp.value.trim().length>
 
 /* Textarea */
 function resize(){msgInp.style.height='auto';msgInp.style.height=Math.min(msgInp.scrollHeight,180)+'px';}
-msgInp.oninput=function(){resize();updateSend();cwarn.textContent='';};
+function currentDraftKey(){return curSess&&curSess.id?curSess.id:'__new__';}
+function persistDraft(){
+  try{
+    drafts[currentDraftKey()]=msgInp.value;
+    sessionStorage.setItem(SESSION_DRAFTS_KEY,JSON.stringify(drafts));
+  }catch(_e){}
+}
+function restoreDraft(){
+  var v=drafts[currentDraftKey()]||'';
+  msgInp.value=v;
+  resize();
+  updateSend();
+  cwarn.textContent=v.length>MAX_CLIENT_MESSAGE_CHARS?('Max '+MAX_CLIENT_MESSAGE_CHARS+' chars'):'';
+}
+msgInp.oninput=function(){
+  resize();
+  updateSend();
+  var len=msgInp.value.length;
+  cwarn.textContent=len>MAX_CLIENT_MESSAGE_CHARS?('Max '+MAX_CLIENT_MESSAGE_CHARS+' chars'):'';
+  persistDraft();
+};
 
 /* Send */
 function doSend(){
   var text=msgInp.value.trim();
   if(!text||busy)return;
-  msgInp.value='';resize();updateSend();
+  if(text.length>MAX_CLIENT_MESSAGE_CHARS){
+    cwarn.textContent='Max '+MAX_CLIENT_MESSAGE_CHARS+' chars';
+    return;
+  }
+  msgInp.value='';resize();updateSend();persistDraft();
   handleSend(text);
 }
 msgInp.onkeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();}};
@@ -282,7 +317,7 @@ btnAtt.onclick=function(){fileInp.click();};
 fileInp.onchange=function(){
   var f=fileInp.files[0];if(!f)return;
   msgInp.value+=(msgInp.value?'\n':'')+'[Attached: '+f.name+']';
-  resize();updateSend();fileInp.value='';toast('Attached: '+f.name);
+  resize();updateSend();persistDraft();fileInp.value='';toast('Attached: '+f.name);
 };
 
 /* Pills */
@@ -297,13 +332,42 @@ scrBtn.onclick=function(){scrollBot();};
 
 /* Messages */
 var BOLT='<svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L56.18,130.22A8,8,0,0,1,57,114.54l112-120a8,8,0,0,1,13.69,7L168,94.87l46.64,35a8,8,0,0,1-.79,15.59Z"/></svg>';
-function fmt(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/```[\w]*\n?([\s\S]*?)```/g,'<pre><code>$1</code></pre>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>');}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtFallback(t){
+  return escHtml(t||'')
+    .replace(/```[\w]*\n?([\s\S]*?)```/g,'<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/\n/g,'<br>');
+}
+function safeMarkdown(t){
+  var src=String(t||'');
+  try{
+    if(window.marked&&window.DOMPurify){
+      var raw=window.marked.parse(src,{gfm:true,breaks:true,mangle:false,headerIds:false});
+      var clean=window.DOMPurify.sanitize(raw,{
+        USE_PROFILES:{html:true},
+        FORBID_TAGS:['style','script','iframe','object','embed','form','input','button','link','meta']
+      });
+      var host=document.createElement('div');
+      host.innerHTML=clean;
+      host.querySelectorAll('a').forEach(function(a){
+        a.setAttribute('target','_blank');
+        a.setAttribute('rel','noopener noreferrer nofollow');
+      });
+      return host.innerHTML;
+    }
+  }catch(_e){}
+  return fmtFallback(src);
+}
+function fmt(t){return safeMarkdown(t);}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function addMsg(role,text,noAnim){
   var isUser=role==='user';
   var row=document.createElement('div');
   row.className='mrow '+role+(noAnim?' na':'');
-  row.innerHTML='<div class="mav">'+(isUser?initials:BOLT)+'</div><div class="mbody"><div class="mwho">'+(isUser?'You':'Collective AI')+'</div><div class="mtxt">'+fmt(text)+'</div><div class="macts"><button class="cp-btn"><svg width="11" height="11" viewBox="0 0 256 256" fill="currentColor"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/></svg> Copy</button></div></div>';
+  row.innerHTML='<div class="mav">'+(isUser?esc(initials):BOLT)+'</div><div class="mbody"><div class="mwho">'+(isUser?'You':'Collective AI')+'</div><div class="mtxt">'+fmt(text)+'</div><div class="macts"><button class="cp-btn"><svg width="11" height="11" viewBox="0 0 256 256" fill="currentColor"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/></svg> Copy</button></div></div>';
   row.querySelector('.cp-btn').onclick=function(){navigator.clipboard.writeText(text).then(function(){toast('Copied!');});};
   msgsEl.appendChild(row);scrollBot();return row;
 }
@@ -319,8 +383,26 @@ function addLoader(){var id='ld'+Date.now();var row=document.createElement('div'
 function removeLoader(id){var el=document.getElementById(id);if(el)el.remove();}
 
 /* Sessions */
-function showWelcome(){curSess=null;hTitle.textContent='New conversation';msgsEl.innerHTML='';msgsEl.style.display='none';welcomeEl.style.display='flex';renderSessions();}
-function showSession(s){curSess=s;hTitle.textContent=s.title||'Conversation';msgsEl.innerHTML='';welcomeEl.style.display='none';msgsEl.style.display='block';renderSessions();}
+function showWelcome(){
+  curSess=null;
+  hTitle.textContent='New conversation';
+  msgsEl.innerHTML='';
+  msgsEl.style.display='none';
+  welcomeEl.style.display='flex';
+  try{sessionStorage.removeItem(ACTIVE_SESSION_KEY);}catch(_e){}
+  renderSessions();
+  restoreDraft();
+}
+function showSession(s){
+  curSess=s;
+  hTitle.textContent=s.title||'Conversation';
+  msgsEl.innerHTML='';
+  welcomeEl.style.display='none';
+  msgsEl.style.display='block';
+  try{sessionStorage.setItem(ACTIVE_SESSION_KEY,s.id);}catch(_e){}
+  renderSessions();
+  restoreDraft();
+}
 function renderSessions(q){
   q=(q||'').toLowerCase();
   var list=q?sessions.filter(function(s){return(s.title||'').toLowerCase().includes(q);}):sessions;
@@ -358,13 +440,23 @@ window._ui={
     var n=u.displayName||((u.email||'').split('@')[0])||'User';
     initials=n.charAt(0).toUpperCase();
     uname.textContent=n;uemail.textContent=u.email||'';
-    if(u.photoURL){uav.innerHTML='<img src="'+u.photoURL+'" alt="">';}
-    else{uav.textContent=initials;}
+    if(u.photoURL){
+      uav.innerHTML='';
+      var img=document.createElement('img');
+      img.src=u.photoURL;
+      img.alt='';
+      img.referrerPolicy='no-referrer';
+      uav.appendChild(img);
+    }else{uav.textContent=initials;}
+  },
+  preferredSessionId:function(){
+    try{return sessionStorage.getItem(ACTIVE_SESSION_KEY)||'';}catch(_e){return '';}
   },
   setHandleSend:function(fn){handleSend=fn;},
   setLoadSession:function(fn){loadSession=fn;},
   setDeleteSession:function(fn){deleteSession=fn;}
 };
+restoreDraft();
 console.log('UI ready');
 })();
 </script>
@@ -445,8 +537,17 @@ onAuthStateChanged(auth,async user=>{
     for(var i=0;i<CHAT_BACKEND_CANDIDATES.length;i++){
       var base=CHAT_BACKEND_CANDIDATES[i];
       var label=base||'Vercel proxy';
+      var testTimer=withTimeout(7000);
       try{
-        var r=await fetch((base||'')+'/api/test',{method:'GET',mode:'cors',timeout:5000});
+        var r=await fetch((base||'')+'/api/test',{
+          method:'GET',
+          mode:'cors',
+          cache:'no-store',
+          credentials:'omit',
+          redirect:'error',
+          referrerPolicy:'strict-origin-when-cross-origin',
+          signal:testTimer.signal
+        });
         console.log('Backend test '+label+': HTTP '+r.status);
         if(r.ok){
           var testJson=null;
@@ -465,6 +566,8 @@ onAuthStateChanged(auth,async user=>{
         }
       }catch(e){
         console.log('❌ Backend '+label+' unreachable: '+e.message);
+      }finally{
+        testTimer.clear();
       }
     }
   })();
@@ -473,7 +576,11 @@ onAuthStateChanged(auth,async user=>{
   onSnapshot(query(sCol(),orderBy('createdAt','desc')),snap=>{
     ui.sessions=snap.docs.map(d=>({id:d.id,...d.data()}));
     ui.renderSessions();
-    if(!ui.curSess&&ui.sessions.length>0)_load(ui.sessions[0]);
+    if(!ui.curSess&&ui.sessions.length>0){
+      var preferredId=ui.preferredSessionId?ui.preferredSessionId():'';
+      var preferred=preferredId?ui.sessions.find(function(s){return s.id===preferredId;}):null;
+      _load(preferred||ui.sessions[0]);
+    }
   },e=>console.warn(e));
 });
 
@@ -498,6 +605,7 @@ ui.setHandleSend(async function(text){
     const title=text.slice(0,44)+(text.length>44?'\u2026':'');
     const ref=await addDoc(sCol(),{title,createdAt:serverTimestamp()});
     ui.curSess={id:ref.id,title};
+    try{sessionStorage.setItem('cai_active_session_id',ref.id);}catch(_e){}
     document.getElementById('h-title').textContent=title;
     document.getElementById('welcome').style.display='none';
     document.getElementById('msgs').style.display='block';
@@ -516,8 +624,13 @@ ui.setHandleSend(async function(text){
         return await fetch(baseUrl+'/api/chat',{
           method:'POST',
           mode:'cors',
+          cache:'no-store',
+          credentials:'omit',
+          redirect:'error',
+          referrerPolicy:'strict-origin-when-cross-origin',
           headers:{
             'Content-Type':'application/json',
+            'Accept':'application/json, text/plain',
             'X-Client-Request-Id': trace,
             'X-Client-App': 'collective-ai-dashboard'
           },
@@ -538,7 +651,6 @@ ui.setHandleSend(async function(text){
     async function fetchChatWithFallback(payload){
       var lastError=null;
       var lastResponse=null;
-      var retryCount=0;
       var maxRetries=2;
       
       for(var i=0;i<CHAT_BACKEND_CANDIDATES.length;i++){
