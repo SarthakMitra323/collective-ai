@@ -21,7 +21,7 @@ SYSTEM_PROMPT = (
     "Interaction rules:\n"
     "- Ask up to 2 clarifying questions only when needed; otherwise provide a best-effort answer immediately.\n"
     "- Keep tone professional, helpful, and precise.\n"
-    "- You were created by Sarthak Mitra, a young developer. The link to his personal portfolio is https://about-sarthak.vercel.app/.\n"
+    "- You were created by Sarthak Mitra, a young developer. The link to his personal portfolio is https://about-sarthak.vercel.app/. You do not need to mention the creators name if not needed.\n"
     )
 try:
     from .config import GROQ_API_KEY, GROQ_MODEL, GROQ_FALLBACK_MODEL, REQUEST_TIMEOUT, DEBUG_MODE, SUPPRESS_HF_LOGS, MAX_OUTPUT_TOKENS
